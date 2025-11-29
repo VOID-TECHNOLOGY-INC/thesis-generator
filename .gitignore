@@ -1,0 +1,19 @@
+# Python / tooling
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Env and local config
+.env
+.env.*
+!.env.example
+
+# macOS artifacts
+.DS_Store
+._*
+
+# Editors/IDE
+.idea/
+.vscode/
