@@ -115,6 +115,7 @@ Influential Citation Filtering: 単に引用されているだけでなく、そ
 
 収集された文献（PDF, HTML）は、執筆時に参照可能な形式に変換する必要がある。
 Parsing: DoclingやPyPDFLoaderを用いてPDFを解析し、テキストだけでなく、セクション構造、図表のキャプション、参考文献リストを構造化データとして抽出する19。
+Parsing失敗時のフォールバック: GrobidやUnstructured等を用いた代替パーサを用意し、最低限の本文テキストを確保する。失敗率や欠損範囲はExecution Traceに記録し、品質ゲートで警告扱いとする。
 Parent-Child Chunking: 文脈を保持するため、単純な固定長チャンクではなく、小さなチャンク（検索用）とそれが属する大きな親チャンク（LLMへの入力用）を紐付ける「Parent-Child」方式を採用する21。
 Semantic Embedding: 学術文章に特化した埋め込みモデル（例：specter2やallenai-specter）を使用してベクトル化し、MilvusやChromaDB等のVector Storeに格納する19。この際、メタデータとして「発行年」「被引用数」「著者」を付与し、後の検索で「2020年以降の論文に限定」といったフィルタリングを可能にする23。
 
@@ -237,6 +238,14 @@ ConFactCheck: 生成された内容に基づいて、逆に質問（Probe Questi
 BibTeX生成: 確定した引用リストに基づき、正確なBibTeXファイルを生成する35。
 LaTeXコンパイル: 大学指定のテンプレート（クラスファイル）にテキストを流し込み、PDFをビルドする。図表の参照番号（Fig. 1）や式番号の整合性もここで最終確定される。
 
+6.4 品質指標と評価プロトコル
+
+博士論文レベルの品質を「定量的に」担保するため、以下の指標とゲートを設ける。
+オンライン品質ゲート（段階的）: 初期リリースでは警告レベル（Novelty Score >= 0.6、引用プレースホルダー/BibTeX対応率 >= 0.98、Scite検証失敗は再試行+警告）。安定版でブロックレベル（Novelty >= 0.7、引用対応率100%、Scite偽陽性/偽陰性ゼロ）へ引き上げる。hallucination_flags が空でない場合はDraftingへ差し戻し。
+カバレッジと整合性: 目次の各Sectionに対し、対応する主要ソース（assigned_sources）が最低1件以上引用されていることをチェックするカバレッジテストを追加。Tier 2要約に含まれる定義・記号が後続章で矛盾しないかを自動テストする。引用欠落は警告→再試行→ブロックの順で評価する。
+オフライン評価: 既知のシード論文セットに対し、Citation Precision / Recall、Fact-to-Source一致率、スタイルガイド遵守率をメトリクスとして定期回帰テストを実施。閾値を割った場合はモデル/プロンプトのロールバックを行う。
+監査ログ: 各査読失敗理由（引用不整合、低Novelty等）を構造化ログとしてExecution Traceに残し、モデル更新前後での改善度を可視化するダッシュボード（例：Superset, Grafana）でモニタリングする。
+
 7. 実装仕様と技術スタック
 
 本システムを構築するための推奨技術スタックとデータモデルを定義する。
@@ -262,50 +271,55 @@ Python
 from typing import TypedDict, List, Dict, Optional, Annotated
 import operator
 
+
 class Reference(TypedDict):
     id: str  # S2 Paper ID or DOI
     title: str
     authors: List[str]
     year: int
     abstract: str
-    citation_intent: str # 'Support', 'Contrast', 'Background'
+    citation_intent: str  # 'Support', 'Contrast', 'Background'
     is_influential: bool
 
+
 class Section(TypedDict):
-    id: str # e.g., "1.2.1"
+    id: str  # e.g., "1.2.1"
     title: str
-    content: str # Markdown text
-    summary: str # For working memory
+    content: str  # Markdown text
+    summary: str  # For working memory
     citations: List[str]
-    status: str # 'Planned', 'Drafted', 'InReview', 'Approved'
-    feedback: List[str] # Review comments
+    status: str  # 'Planned', 'Drafted', 'InReview', 'Approved'
+    feedback: List[str]  # Review comments
+
 
 class ThesisState(TypedDict):
     # Global Inputs
     topic: str
     target_word_count: int
     style_guide: Dict[str, str]
-    
+
     # Research Artifacts
-    knowledge_graph: List # 全収集文献
-    perspectives: List[str] # STORMで得られた視点
-    
+    knowledge_graph: List[Reference]  # 収集文献とメタデータ
+    perspectives: List[str]  # STORMで得られた視点
+
     # Structure & Content
     thesis_title: str
     hypothesis: str
-    outline: List # フラット化されたセクションリスト
-    
+    outline: List[Section]  # フラット化されたセクションリスト
+    manuscript: List[Section]  # 承認済みドラフトの蓄積
+
     # Execution State
     current_section_index: int
-    # 完了したセクションの要約リスト（コンテキストウィンドウ節約用）
-    chapter_summaries: Annotated, operator.ior]
-    
+    chapter_summaries: Annotated[Dict[str, str], operator.or_]  # section_id -> summary
+    vector_store_uri: Optional[str]  # 永続化したコレクションのハンドル
+
     # Quality Gates
     novelty_score: float
     hallucination_flags: List[str]
-    
-    # Human Feedback
+
+    # Human Feedback / Traceability
     user_approval_status: str
+    execution_trace: List[str]
 
 
 
@@ -315,6 +329,13 @@ Semantic Scholar API (S2AG): 引用グラフ探索用。influentialCitationCount
 Tavily Search API: エージェント用に最適化されたWeb検索。
 Scite.ai API: 引用の質的検証用（Smart Citations）。
 arXiv API: 最新のプレプリント取得用。
+
+7.5 セキュリティ・プライバシー・データガバナンス
+
+APIキー管理: すべての外部APIキーはSecret Manager（例：環境変数ではなくVault/Fernet暗号化ストア）に保持し、LangGraphノードには必要最小限の権限スコープのみを付与する。
+ユーザーデータの扱い: ユーザーがアップロードするPDFはPII除去フィルタ（タイトル/著者以外の個人情報をマスク）を通し、RAG格納時に暗号化ストレージを使用する。保持期間はデフォルト30日、早期削除要求を受け付けるAPIを提供する。
+実行サンドボックス: Code Executorはネットワーク遮断・書き込み制限付きのコンテナで実行し、出力できるのは標準出力と生成ファイルのみに限定する。検索/外部APIアクセスは別レイヤ（ツール実行プロセス）に分離し、同一コンテナでの外部通信を禁止する。危険なシステムコール検知時はSupervisorがタスクを停止する。
+監査証跡: 研究テーマ、使用モデル、バージョン、外部APIコール結果をExecution Traceに記録し、ユーザーが後から生成過程を再確認できるようにする。
 
 8. 詳細ワークフローロジック
 
@@ -433,6 +454,7 @@ Synthesis: 生き残った解釈の中で最も論理的に強固なものを採
 Combinatorial Novelty (組み合わせ的新規性): 分野Xの手法Aを、分野Yの問題Bに適用する。キーワード共起ネットワークにおいて、XとYの間にエッジが少ない場合に検出される。
 Incremental Novelty (漸進的新規性): 既存手法の性能をN%改善する。これは比較実験の結果記述に依存する。
 Disruptive Novelty (破壊的新規性): 通説を覆す。これには非常に強い証拠（高い信頼度の実験データと多数の支持文献）が必要となるため、システムは「SciteのContrasting引用」を慎重に分析する。
+定量スコアリング: 4ファセット一致率を0–1でスコア化し、Combinatorial/Incremental/Disruptiveの重みを {0.3, 0.4, 0.3} で加重。0.7未満はピボット候補（警告）、0.6未満で必須ピボット（ブロック）とする。評価時には類似トップk論文（例: k=5）を用いた中央値で安定化し、ばらつきが大きい場合はヒューマン承認フラグを立てる。
 
 10.3 Execution System: 執筆と編集の現場
 
@@ -521,6 +543,19 @@ app = workflow.compile(checkpointer=postgres_saver)
 長時間の自律動作ではAPIエラーが必至である。LangGraphの機能を用い、各ノードにリトライポリシーを設定する。
 Rate Limit: Semantic Scholar API等のレート制限（HTTP 429）に対し、指数バックオフ（Exponential Backoff）を実装する。
 Context Overflow: LLMがコンテキスト長を超過した場合（エラー発生時）、自動的にTier 2メモリ（要約）の圧縮度を上げて再試行するロジックを組み込む。
+
+11.4 テストと評価自動化
+
+ユニットテスト: 各ノード（researcher / planner / writer / reviewer）に対し、モデルレスの関数部（クエリ生成、フィルタリング、チャンク分割など）をpytestでカバーする。
+ゴールデンセット: 既知のテーマ・シード論文を用意し、期待されるアウトライン/引用セットを「ゴールデン」として保存。変更時に回帰テストを実行し、メトリクス（6.4）逸脱でCIを失敗させる。
+サニティチェック: 新規モデルやプロンプトに切り替える際は、短尺ジョブ（例：目次だけ生成）をCI上で実行し、所要時間・APIコスト・エラー率を計測してから本番ワークフローに反映する。
+
+11.5 運用・SLOとモニタリング
+
+SLO例: 1) 1章あたりの平均生成時間 < 10分、2) Citation Precision >= 0.98、3) コンパイル成功率 >= 0.99/日。達成不可の場合、自動で負荷軽減モード（低コストモデル、バッチサイズ縮小）に切り替える。
+モニタリング: LangGraphのチェックポイント件数、APIコール失敗率、ベクトル検索レイテンシ、Scite照会成功率をメトリクスとして収集し、アラート閾値を定義する。
+リリース管理: プロンプト/モデル/テンプレートのバージョンをSemantic Versioningで管理し、ThesisState.execution_traceに使用バージョンを埋め込む。ロールバックは「直近安定版へ切替」手順をRunbookとして記述する。
+
 この仕様書に基づき実装を進めることで、単なるテキスト生成を超えた、真に「研究」を行う自律エージェントシステムが構築可能となる。
 引用文献
 Fundamentals of Building Autonomous LLM Agents This paper is based on a seminar technical report from the course Trends in Autonomous Agents: Advances in Architecture and Practice offered at TUM. - arXiv, 11月 29, 2025にアクセス、 https://arxiv.org/html/2510.09244v1
