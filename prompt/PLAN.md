@@ -80,13 +80,19 @@ Sanity Check: 単純な計算（1+1=2）を行うダミーテストを配置し�
 目的: エージェント間で共有されるコンテキストデータの構造を定義する。LangGraphにおいてStateはエージェントの「記憶」そのものであり、この設計がシステムの表現力を決定する。
 実装タスク:
 src/state.py の作成。
-ResearchState クラスの定義（TypedDict または Pydantic モデルを使用）。以下のフィールドを含める必要がある：
-messages: エージェント間の会話履歴（LangChainの BaseMessage リスト）。operator.add リデューサーを使用して履歴を蓄積する設計とする。
-research_topics: 調査すべきトピックのリスト。STORMにおける「視点（Perspectives）」を管理する。
-documents: 収集・解析された文献データのリスト。
-citation_stats: 引用分析結果（支持/否定の数など）。
-draft_sections: 執筆中のセクションごとのテキストデータ。
-next_node: 次に遷移すべきノード名（Supervisorによるルーティング結果）。
+ThesisState クラスの定義（TypedDict または Pydantic モデルを使用）。以下のフィールドを含める必要がある（SPEC準拠）：
+topic, target_word_count, style_guide
+knowledge_graph: Referenceリスト（S2 Paper ID/DOI等を含むメタデータ）
+perspectives: STORMで得た視点リスト
+thesis_title, hypothesis
+outline: Sectionのフラットリスト（id/title/content/summary/citations/status/feedback）
+manuscript: 確定済みSectionのリスト
+current_section_index: 進捗カーソル
+chapter_summaries: Annotated[Dict[str, str], operator.or_] でセクション要約を蓄積
+vector_store_uri: 永続化したベクトルストアコレクションのハンドル
+novelty_score, hallucination_flags
+user_approval_status, execution_trace: チェックポイントと監査用ログ
+next_node: 次に遷移すべきノード名（Supervisorによるルーティング結果）
 TDD / テスト内容:
 State Reducer Test: messages フィールドに新しいメッセージを追加した際、古い履歴が上書きされずに正しく結合（Append）されるかを確認するテスト。
 Schema Validation Test: 不正なデータ型（例: documents に文字列を入れるなど）をStateに代入しようとした際に、型チェックエラーが発生することを確認するテスト。
@@ -95,6 +101,18 @@ Schema Validation Test: 不正なデータ型（例: documents に文字列を�
 Phase 2: ツールレイヤーの実装（The Senses）
 
 エージェントが外界と接触するための「感覚器官」となるツール群を実装する。ここでは外部APIとの通信が発生するため、テストにおけるモック戦略が重要となる。
+
+RAGパイプライン実装（ベクトル格納とチャンク設計）
+
+目的: SPECで定義したParent-Childチャンクと学術特化埋め込みを用い、後続フェーズでのコンテキスト検索の品質を担保する。
+実装タスク:
+src/tools/ingest.py の作成。Docling/PyPDFLoaderでのセクション構造抽出、親子チャンク生成、メタデータ（year, citations, authors）付与を実装。
+埋め込み: specter2/allennai-specter等のモデルを使用し、MilvusまたはChromaへの格納。vector_store_uriをThesisStateへ保存する。
+再検索API: `search_sections(query, filters)` を実装し、発行年・被引用数フィルタをサポート。
+TDD / テスト内容:
+Chunk Linking Test: 小チャンクと親チャンクが対応付けられているかを検証。
+Metadata Filter Test: 年度フィルタをかけたときに、指定範囲外の論文が返らないことを確認。
+ブランチ名: feature/tool-rag-ingest
 
 Semantic Scholar API ラッパーの実装
 
@@ -121,9 +139,11 @@ parse_pdf_from_url(url: str) 関数の実装。
 指定されたURLからPDFをダウンロード（一時ファイルまたはメモリ上）。
 DocumentConverter を使用して解析を実行。
 結果をMarkdown形式で出力し、特に表データがMarkdownテーブルとして正しく表現されているかを確認する処理を含める。
+Grobid/Unstructured等へのフォールバックを実装し、Docling失敗時も最低限のテキストを確保する。
 TDD / テスト内容:
 Layout Preservation Test: 既知の複雑なレイアウト（2段組み、図表混在）を持つサンプルPDFを用意し、変換後のMarkdownに特定の見出しや表のセルデータが含まれているかを検証する。
 Error Handling Test: 破損したPDFやアクセスできないURLを与えた際に、システム全体をクラッシュさせず、適切なエラーメッセージを返すか確認する。
+Fallback Test: Doclingを意図的に失敗させ、フォールバックが動作し最低限の本文を返すことを確認する。
 ブランチ名: feature/tool-docling-parser
 
 Scite.ai 引用検証ツールの実装
@@ -134,8 +154,10 @@ src/tools/citation_check.py の作成。
 check_paper_validity(doi: str) 関数の実装。
 Scite APIのエンドポイント（/tallies 等）を使用し、指定されたDOIに対する supporting, mentioning, contrasting の引用数を取得する。
 検証ロジック: contrasting（否定的な引用）の数が閾値を超えた場合、または supporting が著しく少ない場合、「要検証」フラグを付与するロジックを実装する。
+カバレッジ外・レート制限時のフォールバック（警告＋手動承認または代替ソース）を定義する。
 TDD / テスト内容:
 Data Driven Test: 肯定的な評価が確立している論文（例: DNA構造）と、後に撤回されたり議論を呼んだ論文（例: 常温核融合関連）のDOIをテストケースとして用意し、ツールがそれぞれ適切な「信頼性スコア」または「警告」を返すか検証する。
+Fallback Test: レート制限やUnknown DOIを模したレスポンスで、適切な警告とフォールバック動作を確認する。
 ブランチ名: feature/tool-scite-validation
 
 E2B Code Interpreterの実装
@@ -155,6 +177,18 @@ Sandbox Isolation Test: 単純な計算（print(1+1)）の実行テストに加�
 Phase 3: エージェントノードの実装（The Brains）
 
 ツールを利用して自律的に思考・行動するエージェントロジックを実装する。各エージェントはLangGraphの「ノード」として機能し、Stateを受け取ってStateを返す関数となる。
+
+Planning/Novelty Agent（Master Planとピボット判断）の実装
+
+目的: STORM視点からアウトラインを生成し、SPECのNovelty Checkerロジックで中心仮説を評価・必要に応じてピボットする。
+実装タスク:
+src/agents/planner.py の作成。Perspectiveを受け取り3階層TOCを生成。中央仮説を4ファセット（Purpose/Mechanism/Evaluation/Application）に分解し、Vector Storeを再検索。
+Novelty Checker: 類似度が高い既存論文が4ファセットすべて一致する場合はピボット案を生成し、ThesisState.topic/hypothesisを更新。
+Master Planのロック: Supervisorに承認させ、outline/hypothesis/novelty_scoreをThesisStateに記録。
+TDD / テスト内容:
+Pivot Test: 類似文献が用意されたモックVector Storeを用い、Pivotが発生するかを確認。
+TOC Coverage Test: 生成されたTOCに最低限の章（序論/文献レビュー/方法/結果/考察/結論）が含まれるか確認。
+ブランチ名: feature/agent-planner-novelty
 
 Research Agent（STORM型探索ロジック）の実装
 
@@ -177,6 +211,7 @@ src/agents/validator.py の作成。
 Research Agentが収集した候補論文リストに対し、Sciteツールを一括（または並列）実行する。
 Novelty Check: ユーザーの主張や仮説が、既存の論文ですでに否定されていないか、あるいは既知の事実ではないかを判定するプロンプトエンジニアリング。
 信頼性の低いソース（撤回論文や否定引用多数）を除外リストに移動し、Writerエージェントが使用しないようにマークする処理。
+Sciteカバレッジ外の場合の扱い（警告＋代替チェックorヒューマン承認）を明記。
 TDD / テスト内容:
 Filtering Logic Test: 混合リスト（信頼できる論文 + 疑わしい論文）を入力とし、エージェントの処理後に「疑わしい論文」が適切にフラグ付けされているかを確認する。
 ブランチ名: feature/agent-validator
@@ -231,6 +266,18 @@ Graph Integrity Test: コンパイルされたグラフオブジェクトを検�
 End-to-End Smoke Test: モックされたツールを使用し、スタートから終了（FINISH）までエラーなく遷移することを確認する実行テスト。
 ブランチ名: feature/construct-main-graph
 
+安全サンドボックスとSecret管理の実装
+
+目的: SPECのセキュリティ/ガバナンス要件に基づき、コード実行とAPIキー管理を堅牢化する。
+実装タスク:
+code_execution.py をDocker/E2Bコンテナでネットワーク遮断・書き込み制限付きで実行するラッパーを実装（検索/APIアクセスは別プロセスで実行しコンテナからは禁止）。
+Vault等へのSecret連携ラッパーを用意し、LangGraphノードからは参照のみ可能とする。環境変数直書きを禁止する。
+アップロードPDFのPIIマスク処理と、保持期間(30日)の自動削除ジョブを追加する。
+TDD / テスト内容:
+Sandbox Escape Test: 外部ネットワークアクセスを試みるコードを実行し、遮断されることを確認。
+Secret Access Test: 環境変数未設定時はエラーを返し、Vaultから取得できる場合のみ実行できることを確認。
+ブランチ名: chore/runtime-safety-and-secrets
+
 Phase 5: インターフェースと品質保証（Delivery）
 
 
@@ -255,6 +302,19 @@ LangSmithを用いた評価セットの定義（入力トピックと理想的�
 TDD / テスト内容:
 Performance Test: 典型的なリクエスト（例: 「量子コンピュータの最新動向」）に対し、タイムアウトせずに完了するか、APIコール数が予算（レート制限）内に収まっているかを計測する。
 ブランチ名: chore/e2e-testing-and-eval
+
+Phase 6: 品質ゲート・評価自動化・運用 (SPEC 6.4/11.4/11.5)
+
+目的: 品質指標とSLOを定義し、CI/CDで自動評価する体制を整える。
+実装タスク:
+品質ゲート: 段階的ゲートを設定（警告: Novelty Score >= 0.6、引用プレースホルダー/BibTeX対応率 >= 0.98、Scite検証失敗は再試行+警告 / ブロック: Novelty >= 0.7、引用対応率100%、Scite偽陽性/偽陰性ゼロ）し、違反時にDraftingへ差し戻すロジックをSupervisor/Reviewerに追加。
+カバレッジチェック: TOCの各Sectionにassigned_sourcesを紐付け、生成ドラフトに最低1件の引用が存在するかを自動検査。
+回帰評価: 既知のゴールデンセットを用いたCitation Precision/Recall、Fact-to-Source一致率、スタイル遵守率の計測スクリプトをCIに組み込む。
+運用監視: LangGraphチェックポイント数、ベクトル検索レイテンシ、Scite照会成功率、1章あたりの平均生成時間、APIコストプロファイルを収集し、SLO（例: Citation Precision >= 0.98、コンパイル成功率 >= 0.99/日）を設定。閾値超過時は警告→ブロックの段階対応。
+TDD / テスト内容:
+Coverage Gate Test: 引用のないセクションがある場合にCIをfailさせるユニットテスト。
+Metric Regression Test: ゴールデンセットに対する評価メトリクスが閾値を下回った場合にビルドを失敗させる回帰テスト。
+ブランチ名: chore/quality-gates-and-ops
 
 4. リスク管理と技術的課題への対策
 

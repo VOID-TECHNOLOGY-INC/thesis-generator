@@ -8,6 +8,34 @@
 - **MemGPT型コンテキスト管理**: Active Workspace / Chapter Summaries / Vector Store の3層メモリで長編整合性を維持。セクションごとに Draft → Critique → 修正のループを実施。
 - **厳密な査読レイヤ**: ログ確率・自己無撞着チェック、Scite.ai で引用の実在/支持/反証を検証。剽窃チェックと危険トピック検知をガードレールとして実装。
 
+## 環境変数の設定 (.env)
+`src/thesis_generator/config.py` は `.env` または環境変数からキーをロードします。ローカルで実行する場合は `.env.example` を複製して値を入れてください。
+
+```bash
+cp .env.example .env
+# エディタで以下を書き換え:
+# OPENAI_API_KEY=sk-...                # https://platform.openai.com/api-keys
+# SEMANTIC_SCHOLAR_API_KEY=...         # https://www.semanticscholar.org/product/api
+# SCITE_API_KEY=...                    # https://api.scite.ai
+# LANGCHAIN_TRACING_V2=false
+# LANGCHAIN_ENDPOINT=                  # 例: https://api.smith.langchain.com
+# LANGCHAIN_API_KEY=                   # LangSmithのAPIキー
+# LANGCHAIN_PROJECT=thesis-generator   # 任意のプロジェクト名
+```
+
+一時的にシェルで設定する場合は `export OPENAI_API_KEY=...` のように環境変数をセットしてからコマンドを実行してください。
+
+### LangChain/LangSmith の設定
+- トレーシングを使わない場合は `LANGCHAIN_TRACING_V2=false` のままで構いません。
+- LangSmith でトレースしたい場合だけ、以下を有効化してください。
+  ```bash
+  LANGCHAIN_TRACING_V2=true
+  LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
+  LANGCHAIN_API_KEY=lsv2-...   # LangSmithの「Settings > API Keys」で取得
+  LANGCHAIN_PROJECT=thesis-generator
+  ```
+  上記のままでも動作に影響はなく、設定しなければトレーシング無しで動きます。
+
 ## 主要アーキテクチャ
 - **フェーズ**: (1) Deep Research (幅優先→引用深掘り) → (2) Structural Planning (STORM + 新規性評価) → (3) Iterative Drafting (RAG + メモリ階層) → (4) Verification & Review → (5) LaTeXコンパイル。
 - **エージェント**: Chief Editor / Research Lead / Planning Lead / Drafting Lead / Review Lead と、Reference Hunter・Code Executor・Novelty Checker・Scite Verifier などのワーカー。
