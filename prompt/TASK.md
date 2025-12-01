@@ -3,22 +3,22 @@
 PRごとに小さく進め、TDDとCI通過を必須とする。ブランチ名は例示。
 
 ## Phase 1: Foundation
-- [ ] chore/init-project-structure  
+- [x] chore/init-project-structure  
   - pyproject.toml（Poetry/uv）、core依存（langgraph/langchain/pydantic/pytest/ruff/mypy 等）追加  
   - ruff.toml, mypy.ini, .env.example 整備  
   - CI: GitHub Actions で lint + pytest  
   - Tests: env未設定時のエラー、pytestのダミーテスト起動確認
-- [ ] feature/define-state-schema  
+- [x] feature/define-state-schema  
   - `src/state.py` に ThesisState の TypedDict または Pydantic モデル定義（PLAN/SPEC準拠）  
   - topic/target_word_count/style_guide、knowledge_graph/perspectives、outline/manuscript、current_section_index、chapter_summaries(Annotated[Dict[str,str], operator.or_])、vector_store_uri、novelty_score/hallucination_flags、user_approval_status/execution_trace/next_node を含める  
   - Tests: chapter_summariesのリデュース動作、型バリデーションエラー確認
 
 ## Phase 2: Tools
-- [ ] feature/tool-rag-ingest  
+- [x] feature/tool-rag-ingest  
   - `src/tools/ingest.py` Docling/PyPDFLoaderでセクション構造抽出、Parent-Childチャンク生成、メタデータ（year/citations/authors）付与  
   - specter系埋め込みでMilvus/Chromaに格納し vector_store_uri を返す `ingest_documents` と `search_sections(query, filters)` を実装  
   - Tests: 親子チャンク対応、年度フィルタの適用確認
-- [ ] feature/tool-semantic-scholar  
+- [x] feature/tool-semantic-scholar  
   - `src/tools/scholar.py` SemanticScholarAPI（search_papers, get_paper_details, 429リトライ）  
   - LangChain @tool 化  
   - Tests: VCR/モックでJSONパース、ページネーション取得確認
