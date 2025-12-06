@@ -14,6 +14,7 @@ from .openalex import (
     openalex_get_paper,
     openalex_search,
 )
+from .pdf_parser import parse_pdf_from_url
 
 __all__ = [
     "Chunk",
@@ -26,6 +27,7 @@ __all__ = [
     "OpenAlexPaper",
     "openalex_get_paper",
     "openalex_search",
+    "parse_pdf_from_url",
     "reset_vector_store_registry",
     "search_sections",
 ]
