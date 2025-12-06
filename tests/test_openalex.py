@@ -8,23 +8,27 @@ from thesis_generator.tools.openalex import OpenAlexAPI, OpenAlexPaper
 
 
 class FakeWorks:
-    def __init__(self, pages: list[list[dict[str, Any]]] | None = None, details: dict[str, dict[str, Any]] | None = None) -> None:
+    def __init__(
+        self,
+        pages: list[list[dict[str, Any]]] | None = None,
+        details: dict[str, dict[str, Any]] | None = None,
+    ) -> None:
         self.pages = pages or []
         self.details = details or {}
         self.params: dict[str, Any] | None = None
         self.per_page: int | None = None
 
-    def search(self, s: str) -> "FakeWorks":
+    def search(self, s: str) -> FakeWorks:
         self.params = self.params or {}
         self.params["search"] = s
         return self
 
-    def select(self, s: str) -> "FakeWorks":
+    def select(self, s: str) -> FakeWorks:
         self.params = self.params or {}
         self.params["select"] = s
         return self
 
-    def filter(self, **kwargs: Any) -> "FakeWorks":
+    def filter(self, **kwargs: Any) -> FakeWorks:
         self.params = self.params or {}
         filters = self.params.get("filter", {})
         filters.update(kwargs)

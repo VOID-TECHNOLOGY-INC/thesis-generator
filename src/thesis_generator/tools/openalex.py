@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from langchain_core.tools import tool
 from pydantic import BaseModel, ConfigDict, Field
@@ -135,7 +136,9 @@ def _parse_year_range(value: str | None) -> tuple[int, int] | None:
 
 
 @tool("openalex_search")
-def openalex_search(query: str, year_range: str | None = None, limit: int = 5) -> list[dict[str, Any]]:
+def openalex_search(
+    query: str, year_range: str | None = None, limit: int = 5
+) -> list[dict[str, Any]]:
     """Search OpenAlex for works matching a query."""
 
     settings = load_settings()
