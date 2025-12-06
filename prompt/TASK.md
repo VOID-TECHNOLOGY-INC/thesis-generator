@@ -22,7 +22,7 @@ PRごとに小さく進め、TDDとCI通過を必須とする。ブランチ名�
   - `src/tools/openalex.py` OpenAlex API（search_papers, get_paper_details）  
   - LangChain @tool 化  
   - Tests: モックでJSONパース、ページネーション取得確認
-- [ ] feature/tool-docling-parser  
+- [x] feature/tool-docling-parser  
   - `src/tools/pdf_parser.py` Doclingで PDF→Markdown 変換（URL→一時保存→解析）  
   - Grobid/Unstructured等のフォールバックを実装し、Docling失敗時も最低限の本文を確保  
   - Tests: 複雑レイアウトPDFの見出し/表検出、破損URL時のエラー、Docling失敗時にフォールバックが動作すること

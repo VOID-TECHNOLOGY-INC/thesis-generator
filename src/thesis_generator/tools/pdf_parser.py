@@ -33,6 +33,23 @@ def _convert_with_docling(path: Path) -> str:
     raise RuntimeError("Docling document does not support markdown export")
 
 
+def _convert_with_unstructured(path: Path) -> str:
+    try:
+        from unstructured.partition.pdf import partition_pdf
+    except Exception as exc:  # pragma: no cover - optional dependency
+        raise ImportError("unstructured is not available") from exc
+
+    elements = partition_pdf(str(path))
+    if not elements:
+        raise RuntimeError("Unstructured returned no elements")
+
+    parts = [getattr(element, "text", "").strip() for element in elements]
+    text = "\n\n".join(part for part in parts if part)
+    if not text:
+        raise RuntimeError("Unstructured returned empty text")
+    return text
+
+
 def _convert_with_pypdf(path: Path) -> str:
     from PyPDF2 import PdfReader
 
@@ -57,13 +74,15 @@ def parse_pdf_from_url(url: str) -> str:
         tmp.flush()
         pdf_path = Path(tmp.name)
 
-        try:
-            return _convert_with_docling(pdf_path)
-        except Exception:
+        errors: list[str] = []
+        for converter in (_convert_with_docling, _convert_with_unstructured, _convert_with_pypdf):
             try:
-                return _convert_with_pypdf(pdf_path)
-            except Exception as exc:
-                raise RuntimeError("Failed to parse PDF with any parser") from exc
+                return converter(pdf_path)
+            except Exception as exc:  # pragma: no cover - aggregated for error reporting
+                errors.append(str(exc))
+                continue
+
+        raise RuntimeError("Failed to parse PDF with any parser: " + "; ".join(errors))
 
 
 __all__ = ["parse_pdf_from_url"]
