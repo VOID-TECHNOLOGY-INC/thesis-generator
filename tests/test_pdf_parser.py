@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -32,7 +31,9 @@ def test_parse_pdf_prefers_docling(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     assert result == "docling-markdown"
 
 
-def test_parse_pdf_fallback_on_docling_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_parse_pdf_fallback_on_docling_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     def fake_download(_: str) -> bytes:
         return b"pdf-bytes"
 
