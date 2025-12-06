@@ -4,7 +4,7 @@
 
 1. 序論：プロジェクトの背景とアーキテクチャ哲学
 
-本ドキュメントは、現代の学術研究プロセスが抱える情報の断片化と検証コストの増大という課題に対し、LangGraphを用いた自律型マルチエージェントシステム（Multi-Agent System: MAS）による技術的解決策を提示し、その詳細な実装計画を定義するものである。本計画の核心は、スタンフォード大学が提唱する**STORM（Synthesis of Topic Outlines through Retrieval and Multi-perspective Question Asking）**の概念を拡張し、Semantic Scholarによる広範な知識グラフ探索と、Scite.aiによる「スマート引用（Smart Citations）」を用いた厳格な事実検証（Fact-Checking）を統合することにある。
+本ドキュメントは、現代の学術研究プロセスが抱える情報の断片化と検証コストの増大という課題に対し、LangGraphを用いた自律型マルチエージェントシステム（Multi-Agent System: MAS）による技術的解決策を提示し、その詳細な実装計画を定義するものである。本計画の核心は、スタンフォード大学が提唱する**STORM（Synthesis of Topic Outlines through Retrieval and Multi-perspective Question Asking）**の概念を拡張し、OpenAlexによる広範な知識グラフ探索と、Scite.aiによる「スマート引用（Smart Citations）」を用いた厳格な事実検証（Fact-Checking）を統合することにある。
 我々が目指すシステムは、単にテキストを生成するだけのLLM（Large Language Model）ラッパーではない。それは、研究者が行う「仮説立案」「文献調査」「批判的検証」「執筆」という一連の認知プロセスを、専門化されたエージェント群に委譲し、それらを中央の監督者（Supervisor）がオーケストレーションすることで、人間が検証可能な信頼性の高い学術レポートを自律的に生成する基盤である。
 本実装計画書は、ソフトウェアエンジニアリングのベストプラクティスに基づき、テスト駆動開発（TDD: Test-Driven Development）を開発プロセスの根幹に据える。すべての機能実装は、まず失敗するテストケースの作成から始まり、そのテストを通過させるためのコード記述、そしてリファクタリングという厳格なサイクルを経て行われる。また、各機能は粒度の細かいPull Request（PR）単位に分割され、それぞれに対して独立したFeatureブランチを作成することで、並行開発におけるコンフリクトを最小限に抑えつつ、コード品質を維持する戦略を採用する。
 
@@ -19,8 +19,8 @@ Orchestration
 LangGraph
 循環フロー、永続化（Checkpointing）、Human-in-the-loopのネイティブサポートにより、複雑な自律エージェントの制御を実現する。
 Literature Search
-Semantic Scholar API
-2億本以上の論文データベースへのグラフアクセスを提供。引用・被引用関係のトラバース（Graph Traversal）により、関連研究の深掘りが可能。
+OpenAlex API
+オープンな論文グラフ（被引用・参考文献・著者・機関）へのアクセスを提供。引用関係のトラバースにより関連研究を深掘り可能。
 Validation
 Scite.ai API
 引用文脈（支持/否定/言及）の分類データを提供。LLMの幻覚（Hallucination）を抑制し、生成された主張の裏付けを行うための唯一無二の検証ソース。
@@ -69,7 +69,7 @@ Phase 1: プロジェクト基盤と型定義（Foundation & Type System）
 依存関係管理: pyproject.toml (Poetryまたはuv推奨) を作成し、langgraph, langchain, pydantic, pytest, ruff, mypy などのコアライブラリを定義する。
 静的解析設定: ruff.toml および mypy.ini を設定し、厳格なLintルール（未使用インポートの禁止、型ヒントの強制など）を適用する。
 CI構成: GitHub Actionsのワークフロー定義ファイルを作成し、PR作成時に自動的にLintチェックと単体テストが実行されるようにする。
-環境変数管理: .env.example を作成し、OPENAI_API_KEY, SEMANTIC_SCHOLAR_API_KEY, SCITE_API_KEY 等の機密情報の取り扱いを標準化する。
+環境変数管理: .env.example を作成し、OPENAI_API_KEY, SCITE_API_KEY 等の機密情報の取り扱いを標準化する（OpenAlexはキー不要、mailtoは任意）。
 TDD / テスト内容:
 Environment Test: 必要な環境変数がロードされない場合に、アプリケーションが適切なエラーメッセージを出して終了することを確認するテスト。
 Sanity Check: 単純な計算（1+1=2）を行うダミーテストを配置し、CI上でpytestが正しく起動・報告することを確認する。
@@ -114,20 +114,19 @@ Chunk Linking Test: 小チャンクと親チャンクが対応付けられてい
 Metadata Filter Test: 年度フィルタをかけたときに、指定範囲外の論文が返らないことを確認。
 ブランチ名: feature/tool-rag-ingest
 
-Semantic Scholar API ラッパーの実装
+OpenAlex API ラッパーの実装
 
-目的: 学術文献の検索および詳細情報の取得機能を提供する。グラフAPIを活用し、単純なキーワード検索だけでなく、引用ネットワークを辿れるようにする。
+目的: 学術文献の検索および詳細情報の取得機能を提供する。オープンな論文グラフを活用し、キーワード検索だけでなく参考文献・被引用の追跡を行う。
 実装タスク:
-src/tools/scholar.py の作成。
-SemanticScholarAPI クラスの実装。
-search_papers(query, year_range, limit): /graph/v1/paper/search エンドポイントを使用。
-get_paper_details(paper_id): タイトル、アブストラクト、著者、引用数、被引用数（citationCount, influentialCitationCount）を取得。
-レート制限（HTTP 429）に対する指数バックオフ（Exponential Backoff）リトライロジックの実装。
+src/tools/openalex.py の作成。
+OpenAlexAPI クラスの実装。
+search_papers(query, year_range, limit): Works検索を使用。
+get_paper_details(work_id): タイトル、アブストラクト、著者、被引用数（cited_by_count）、参考文献リストを取得。
 LangChainの @tool デコレータを用いたツール化。
 TDD / テスト内容:
-Mock Integration Test: vcrpy または pytest-mock を使用し、APIからのJSONレスポンスをファイルとして保存（カセット化）する。これにより、実際のAPIを叩かずに、パースロジック（JSONからPydanticオブジェクトへの変換）が正しく動作することを保証する。
+Mock Integration Test: pytest-mock 等でAPIレスポンスをモックし、パースロジック（JSONからPydanticオブジェクトへの変換）が正しく動作することを保証する。
 Pagination Test: 検索結果が多数ある場合、ページネーション処理が正しく動作し、指定された件数分のデータを取得できるか確認する。
-ブランチ名: feature/tool-semantic-scholar
+ブランチ名: feature/tool-openalex
 
 Docling PDF解析ツールの実装
 
@@ -196,7 +195,7 @@ Research Agent（STORM型探索ロジック）の実装
 実装タスク:
 src/agents/researcher.py の作成。
 Perspective Generation: ユーザーのトピックに対し、「経済的視点」「技術的課題」「歴史的背景」など、調査すべき複数の切り口（Perspectives）をLLMに生成させるプロンプトの実装。
-Iterative Search: 各視点に基づき、Semantic Scholarツールを用いて検索を実行し、得られたアブストラクトを要約してStateの documents に追加するループ処理。
+Iterative Search: 各視点に基づき、OpenAlexツールを用いて検索を実行し、得られたアブストラクトを要約してStateの documents に追加するループ処理。
 Conversation Simulation: 仮想的な「専門家」と「インタビュアー」の対話をシミュレートし、深掘りすべき質問を生成するSTORM特有の機能の実装。
 TDD / テスト内容:
 Prompt Logic Test: トピックを入力した際、LLMが重複のない多様な視点（例: 3つ以上）を生成するか確認する。
@@ -322,7 +321,7 @@ Metric Regression Test: ゴールデンセットに対する評価メトリク�
 
 4.1 APIレート制限とコスト管理
 
-課題: Semantic ScholarやSciteのAPIは、短時間に大量のリクエストを送るとブロックされる可能性がある。また、LLMのトークンコストも無視できない。
+課題: OpenAlexやSciteのAPI/エンドポイントは、短時間に大量のリクエストを送るとブロックされる可能性がある。また、LLMのトークンコストも無視できない。
 対策:
 キャッシュ層の導入: 一度取得した論文データや引用情報は、ローカルデータベース（SQLite）またはRedisにキャッシュし、同一クエリに対する再リクエストを防ぐ。
 バッチ処理: Scite APIなどは複数のDOIを一度にリクエストできるエンドポイントを持っている場合があるため、可能な限りバッチリクエストを実装する。
@@ -343,6 +342,6 @@ Budgeting: SupervisorのStateに「検索回数カウンター」を持たせ、
 
 5. 結論
 
-本実装計画は、LangGraphの強力なオーケストレーション能力と、Semantic ScholarおよびScite.aiという信頼性の高い学術データソースを融合させることで、次世代の研究支援ツールを実現するための青写真である。
+本実装計画は、LangGraphの強力なオーケストレーション能力と、OpenAlexおよびScite.aiという信頼性の高い学術データソースを融合させることで、次世代の研究支援ツールを実現するための青写真である。
 TDDの義務化とPRベースの厳格なワークフローは、開発初期の速度を若干低下させるかもしれないが、システムの複雑性が増すにつれて、その真価を発揮する。バグの早期発見、仕様の明確化、そして何より「動くことが保証されたコード」の積み重ねが、最終的なプロジェクトの成功を約束するものである。
 開発チームは、直ちに chore/init-project-structure ブランチを作成し、本計画に基づいた実装を開始されたい。

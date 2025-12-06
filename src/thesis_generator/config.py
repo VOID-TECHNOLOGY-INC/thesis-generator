@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     """Application configuration loaded from environment variables."""
 
     openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
-    semantic_scholar_api_key: str = Field(..., alias="SEMANTIC_SCHOLAR_API_KEY")
     scite_api_key: str = Field(..., alias="SCITE_API_KEY")
+    openalex_mailto: str | None = Field(default=None, alias="OPENALEX_MAILTO")
 
     langchain_tracing_v2: bool = Field(default=False, alias="LANGCHAIN_TRACING_V2")
     langchain_endpoint: str | None = Field(default=None, alias="LANGCHAIN_ENDPOINT")

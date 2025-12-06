@@ -18,10 +18,10 @@ PRごとに小さく進め、TDDとCI通過を必須とする。ブランチ名�
   - `src/tools/ingest.py` Docling/PyPDFLoaderでセクション構造抽出、Parent-Childチャンク生成、メタデータ（year/citations/authors）付与  
   - specter系埋め込みでMilvus/Chromaに格納し vector_store_uri を返す `ingest_documents` と `search_sections(query, filters)` を実装  
   - Tests: 親子チャンク対応、年度フィルタの適用確認
-- [x] feature/tool-semantic-scholar  
-  - `src/tools/scholar.py` SemanticScholarAPI（search_papers, get_paper_details, 429リトライ）  
+- [x] feature/tool-openalex  
+  - `src/tools/openalex.py` OpenAlex API（search_papers, get_paper_details）  
   - LangChain @tool 化  
-  - Tests: VCR/モックでJSONパース、ページネーション取得確認
+  - Tests: モックでJSONパース、ページネーション取得確認
 - [ ] feature/tool-docling-parser  
   - `src/tools/pdf_parser.py` Doclingで PDF→Markdown 変換（URL→一時保存→解析）  
   - Grobid/Unstructured等のフォールバックを実装し、Docling失敗時も最低限の本文を確保  

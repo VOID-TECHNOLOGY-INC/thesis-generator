@@ -15,7 +15,7 @@
 本システムの設計哲学は、人間が論文を書く際の認知的プロセスを、専門化されたAIエージェントの集合体として模倣することにある。人間の研究者が「調査」「構想」「執筆」「推敲」という異なる脳内モードを切り替えるように、本システムもまた、LangGraphを用いた階層的な状態管理によって、異なる役割を持つエージェント（Supervisor-Workerパターン）をオーケストレーションする5。
 特に重視するのは以下の2点である：
 長期的整合性（Long-term Coherence）の維持：各章を独立して生成しつつも、論文全体としての主張のブレを防ぐため、MemGPTに触発された階層的メモリ管理システムを導入する。これにより、第1章で定義した用語や仮説が、第5章の考察においても矛盾なく参照されることを保証する7。
-学術的厳密性（Academic Rigor）の担保：LLMの内部知識に依存せず、常に外部の信頼できる学術データベース（arXiv, Semantic Scholar）を参照し、Scite.ai等の検証ツールを用いて引用の正確性と文脈的適切性を担保する「Retrieval-Augmented Generation (RAG)」を徹底する9。
+学術的厳密性（Academic Rigor）の担保：LLMの内部知識に依存せず、常に外部の信頼できる学術データベース（arXiv, OpenAlex）を参照し、Scite.ai等の検証ツールを用いて引用の正確性と文脈的適切性を担保する「Retrieval-Augmented Generation (RAG)」を徹底する9。
 
 2. システムアーキテクチャとオーケストレーション戦略
 
@@ -52,7 +52,7 @@ Review Lead
 査読プロセスの管理、引用検証、幻覚検出、倫理チェック。
 Level 2 (Workers)
 Reference Hunter
-API（Tavily, Semantic Scholar）を用いた文献収集とフィルタリング。
+API（Tavily, OpenAlex）を用いた文献収集とフィルタリング。
 
 
 Code Executor
@@ -80,7 +80,7 @@ Execution Trace: 各エージェントのアクション履歴とエラーログ
 
 「博士レベル」のアウトプットを保証するためには、LLMの幻覚を防ぎ、事実に基づいた処理を行う必要がある。そのために、以下の外部環境との連携を仕様に含める。
 Dockerized Sandbox: データ分析やグラフ描画、アルゴリズムの検証を行う際、LLMが生成したPythonコードを安全に実行するための隔離環境。これは「AI Scientist」等の先行研究でも採用されている標準的な構成である13。コードの実行結果（標準出力、生成された画像ファイル）は、再びコンテキストとしてエージェントにフィードバックされる。
-Standardized API Interfaces: Semantic Scholar, arXiv, Scite.ai等の学術サービスとは、OpenAPI仕様に基づいた厳格なインターフェースで接続し、構造化データ（JSON）として情報を取得する。これにより、不明瞭なテキスト解析による情報の劣化を防ぐ16。
+Standardized API Interfaces: OpenAlex, arXiv, Scite.ai等の学術サービスとは、OpenAPI仕様に基づいた厳格なインターフェースで接続し、構造化データ（JSON）として情報を取得する。これにより、不明瞭なテキスト解析による情報の劣化を防ぐ16。
 
 3. フェーズ1：Deep Researchと知識獲得 (Knowledge Acquisition)
 
@@ -108,8 +108,8 @@ Standardized API Interfaces: Semantic Scholar, arXiv, Scite.ai等の学術サー
 
 3.2.2 深さ優先探索による引用追跡
 
-次に、特定された重要文献に対して深掘りを行う。ここで重要なのは、Semantic Scholar APIを活用した「Influential Citation（影響力の高い引用）」の特定である。
-Influential Citation Filtering: 単に引用されているだけでなく、その論文の手法や理論が後続の研究に強く影響を与えている場合（Semantic Scholarが提供するinfluentialCitationCountや引用文脈の分類に基づく）、そのリンクを辿ってさらに調査を行う17。これにより、表面的な関連性ではなく、議論の本質的な系譜を抽出する。
+次に、特定された重要文献に対して深掘りを行う。ここで重要なのは、OpenAlexの引用グラフを活用した被引用・参考文献の追跡である。
+Citation Graph Filtering: 単に引用されているだけでなく、その論文がどの研究コミュニティから強く参照されているか（cited_by_countや参照元の領域）を見て、引用網の中心にあるものを優先して深掘りする。これにより、表面的な関連性ではなく、議論の本質的な系譜を抽出する。
 
 3.3 文献の取り込みとベクトル化 (RAG Pipeline)
 
@@ -325,7 +325,7 @@ class ThesisState(TypedDict):
 
 7.4 外部API仕様
 
-Semantic Scholar API (S2AG): 引用グラフ探索用。influentialCitationCountフィールドを活用39。
+OpenAlex API: 引用グラフ探索用。cited_by_countやreferenced_worksフィールドを活用し、引用網の中心性を評価する。
 Tavily Search API: エージェント用に最適化されたWeb検索。
 Scite.ai API: 引用の質的検証用（Smart Citations）。
 arXiv API: 最新のプレプリント取得用。
@@ -430,10 +430,10 @@ def main_workflow(topic: str):
 
 検索された数千の文献から、実際に読むべき（RAGのコンテキストに入れるべき）数十件を選定するために、以下の重み付けスコアを使用する。
 
-$$Score(p) = \alpha \cdot Sim(q, p_{abs}) + \beta \cdot \log(C_{inf}) + \gamma \cdot I(Year)$$
+$$Score(p) = \alpha \cdot Sim(q, p_{abs}) + \beta \cdot \log(C_{cite}) + \gamma \cdot I(Year)$$
 ここで：
 $Sim(q, p_{abs})$: ユーザークエリと論文アブストラクトのベクトル類似度（Specter2使用）。意味的な関連性を担保する。
-$C_{inf}$: Semantic ScholarのinfluentialCitationCount。単純な被引用数ではなく、他論文に強い影響を与えた「本質的な価値」を評価する39。
+$C_{cite}$: OpenAlexのcited_by_count。単純な参照数として扱い、領域別の分布と組み合わせて影響度を補足的に推定する。
 $I(Year)$: 経年減衰関数。分野にもよるが、CS系であれば直近3〜5年を高く評価するよう調整する。
 $\alpha, \beta, \gamma$: 調整パラメータ（例：State-of-the-Art調査なら $\gamma$ を高く、基礎理論調査なら $\beta$ を高く設定）。
 
@@ -541,7 +541,7 @@ app = workflow.compile(checkpointer=postgres_saver)
 11.3 エラーハンドリングとリトライ
 
 長時間の自律動作ではAPIエラーが必至である。LangGraphの機能を用い、各ノードにリトライポリシーを設定する。
-Rate Limit: Semantic Scholar API等のレート制限（HTTP 429）に対し、指数バックオフ（Exponential Backoff）を実装する。
+Rate Limit: OpenAlexやSciteのAPIレート制限（HTTP 429）に対し、指数バックオフ（Exponential Backoff）を実装する。
 Context Overflow: LLMがコンテキスト長を超過した場合（エラー発生時）、自動的にTier 2メモリ（要約）の圧縮度を上げて再試行するロジックを組み込む。
 
 11.4 テストと評価自動化
@@ -574,8 +574,8 @@ How AI Researcher Automates Scientific Research from Design to Paper Writing - �
 Literature-Grounded Novelty Assessment of ... - ACL Anthology, 11月 29, 2025にアクセス、 https://aclanthology.org/2025.sdp-1.9.pdf
 How AI Science Agents Transform Research Workflows - Docker, 11月 29, 2025にアクセス、 https://www.docker.com/blog/ai-science-agents-research-workflows/
 GPT Researcher - Tavily Docs, 11月 29, 2025にアクセス、 https://docs.tavily.com/examples/open-sources/gpt-researcher
-Mastering Research with the Semantic Scholar API: An Insider's Guide - Skywork.ai, 11月 29, 2025にアクセス、 https://skywork.ai/skypage/en/Mastering-Research-with-the-Semantic-Scholar-API-An-Insider's-Guide/1973804064216641536
-The Semantic Scholar Open Data Platform - arXiv, 11月 29, 2025にアクセス、 https://arxiv.org/html/2301.10140v2
+OpenAlex API Overview, 11月 29, 2025にアクセス、 https://docs.openalex.org/how-to-use-the-api/api-overview
+OpenAlex Data Model (Works), 11月 29, 2025にアクセス、 https://docs.openalex.org/api-entities/works
 Implement RAG with LangChain to Explore IBM Quantum Research, 11月 29, 2025にアクセス、 https://www.ibm.com/think/tutorials/rag-langchain-explore-quantum-research-granite
 Running the STORM AI Research System with Your Local Documents - Medium, 11月 29, 2025にアクセス、 https://medium.com/data-science/running-the-storm-ai-research-system-with-your-local-documents-e413ea2ae064
 A Practical Guide to RAG with Haystack and LangChain - DigitalOcean, 11月 29, 2025にアクセス、 https://www.digitalocean.com/community/tutorials/production-ready-rag-pipelines-haystack-langchain
@@ -595,7 +595,7 @@ sypsyp97/AutoCitation: An LLM agent that helps you find real citations for your 
 LangGraph: Hierarchical Agent Teams - Kaggle, 11月 29, 2025にアクセス、 https://www.kaggle.com/code/ksmooi/langgraph-hierarchical-agent-teams
 Mastering AI-Powered Research: My Guide to Deep Research, Prompt Engineering, and Multi-Step Workflows : r/ChatGPTPro - Reddit, 11月 29, 2025にアクセス、 https://www.reddit.com/r/ChatGPTPro/comments/1in87ic/mastering_aipowered_research_my_guide_to_deep/
 A Large-Scale Dataset and Citation Intent Classification in Turkish with LLMs This work was supported by TÜBİTAK ULAKBİM. - arXiv, 11月 29, 2025にアクセス、 https://arxiv.org/html/2509.21907v1
-Semantic Scholar API (Academic Graph) - GitHub, 11月 29, 2025にアクセス、 https://gist.github.com/alexandreteles/c8bc00830e97eefa961e26c49aa666e7
+OpenAlex API Tips - GitHub, 11月 29, 2025にアクセス、 https://github.com/ourresearch/openalex-api
 Self-driven Biological Discovery through Automated Hypothesis Generation and Experimental Validation | bioRxiv, 11月 29, 2025にアクセス、 https://www.biorxiv.org/content/10.1101/2025.06.24.661378v1.full-text
 (PDF) A review on the novelty measurements of academic papers - ResearchGate, 11月 29, 2025にアクセス、 https://www.researchgate.net/publication/388440814_A_review_on_the_novelty_measurements_of_academic_papers
 Novelty in Science. A guide to reviewers | by Michael Black - Medium, 11月 29, 2025にアクセス、 https://medium.com/@black_51980/novelty-in-science-8f1fd1a0a143

@@ -8,11 +8,11 @@ from .ingest import (
     reset_vector_store_registry,
     search_sections,
 )
-from .scholar import (
-    Paper,
-    SemanticScholarAPI,
-    semantic_scholar_get_paper,
-    semantic_scholar_search,
+from .openalex import (
+    OpenAlexAPI,
+    OpenAlexPaper,
+    openalex_get_paper,
+    openalex_search,
 )
 
 __all__ = [
@@ -22,10 +22,10 @@ __all__ = [
     "SourceDocument",
     "SourceSection",
     "ingest_documents",
-    "Paper",
-    "SemanticScholarAPI",
-    "semantic_scholar_get_paper",
-    "semantic_scholar_search",
+    "OpenAlexAPI",
+    "OpenAlexPaper",
+    "openalex_get_paper",
+    "openalex_search",
     "reset_vector_store_registry",
     "search_sections",
 ]
