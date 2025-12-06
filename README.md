@@ -3,7 +3,7 @@
 博士級の学位論文を自律生成する **Autonomous Research Agent System (ARAS)** の仕様概要をまとめたリポジトリ。テーマ入力またはシード論文を起点に、深層調査・構成計画・執筆・査読・LaTeX出力までをマルチエージェントで自動化する。
 
 - **LangGraph Supervisor-Worker**: Chief Editor が Research/Planning/Drafting/Review の各リードとワーカーをオーケストレーション。DBにチェックポイントを永続化し長時間実行を維持。
-- **RAGファースト設計**: Tavily/ Semantic Scholar / arXiv から収集した文献を Docling/PyPDFLoader で構造化し、Specter2 などでベクトル化。ChromaDB/Milvus に格納し、メタデータフィルタで新旧・影響度を制御。
+- **RAGファースト設計**: Tavily/ OpenAlex / arXiv から収集した文献を Docling/PyPDFLoader で構造化し、Specter2 などでベクトル化。ChromaDB/Milvus に格納し、メタデータフィルタで新旧・影響度を制御。
 - **STORM × Novelty Checker**: 多視点対話でアウトラインを合成し、Purpose/Mechanism/Evaluation/Application の4ファセット比較で新規性を判定・ピボット。
 - **MemGPT型コンテキスト管理**: Active Workspace / Chapter Summaries / Vector Store の3層メモリで長編整合性を維持。セクションごとに Draft → Critique → 修正のループを実施。
 - **厳密な査読レイヤ**: ログ確率・自己無撞着チェック、Scite.ai で引用の実在/支持/反証を検証。剽窃チェックと危険トピック検知をガードレールとして実装。
@@ -15,8 +15,8 @@
 cp .env.example .env
 # エディタで以下を書き換え:
 # OPENAI_API_KEY=sk-...                # https://platform.openai.com/api-keys
-# SEMANTIC_SCHOLAR_API_KEY=...         # https://www.semanticscholar.org/product/api
 # SCITE_API_KEY=...                    # https://api.scite.ai
+# OPENALEX_MAILTO=you@example.com      # 任意。負荷配分のための連絡先
 # LANGCHAIN_TRACING_V2=false
 # LANGCHAIN_ENDPOINT=                  # 例: https://api.smith.langchain.com
 # LANGCHAIN_API_KEY=                   # LangSmithのAPIキー
@@ -40,14 +40,14 @@ cp .env.example .env
 - **フェーズ**: (1) Deep Research (幅優先→引用深掘り) → (2) Structural Planning (STORM + 新規性評価) → (3) Iterative Drafting (RAG + メモリ階層) → (4) Verification & Review → (5) LaTeXコンパイル。
 - **エージェント**: Chief Editor / Research Lead / Planning Lead / Drafting Lead / Review Lead と、Reference Hunter・Code Executor・Novelty Checker・Scite Verifier などのワーカー。
 - **状態管理 (ThesisState)**: テーマ、スタイルガイド、知識グラフ、視点リスト、アウトライン、進捗インデックス、章要約、novelty_score、hallucination_flags、ユーザー承認状態を保持。セクションは `id/title/content/summary/citations/status/feedback` を持ち、引用は S2 ID or DOI ベースで一元管理。
-- **ツール連携**: Semantic Scholar / Tavily / arXiv / Scite.ai API、PostgreSQL チェックポイント、Docker サンドボックスでの Python 実行と図表生成。
+- **ツール連携**: OpenAlex / Tavily / arXiv / Scite.ai API、PostgreSQL チェックポイント、Docker サンドボックスでの Python 実行と図表生成。
 
 ## セットアップ (開発用)
 Poetry 例:
 ```bash
 poetry add langchain langgraph langchain-openai pydantic
 poetry add chromadb pymilvus psycopg2-binary
-poetry add arxiv semanticscholar docling pypdf
+poetry add arxiv pyalex docling pypdf
 poetry add tavily-python beautifulsoup4
 ```
 uv 派生や他のパッケージマネージャでも同等に追加する。

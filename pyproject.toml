@@ -10,9 +10,11 @@ packages = [{ include = "thesis_generator", from = "src" }]
 python = "^3.11"
 langchain = "^0.2.12"
 langgraph = "^0.2.16"
+requests = "^2.32.3"
 pydantic = "^2.8.2"
 pydantic-settings = "^2.4.0"
 python-dotenv = "^1.0.1"
+pyalex = "^0.19"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
