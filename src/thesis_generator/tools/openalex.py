@@ -4,8 +4,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from langchain_core.tools import tool
-from pydantic import BaseModel, ConfigDict, Field
 from pyalex import Works, config as openalex_config, invert_abstract
+from pydantic import BaseModel, ConfigDict, Field
 
 from thesis_generator.config import load_settings
 
