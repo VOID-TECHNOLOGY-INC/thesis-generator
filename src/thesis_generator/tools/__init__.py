@@ -14,9 +14,11 @@ from .openalex import (
     openalex_get_paper,
     openalex_search,
 )
+from .citation_check import SciteClient, check_citations
 from .pdf_parser import parse_pdf_from_url
 
 __all__ = [
+    "check_citations",
     "Chunk",
     "ParentChildVectorStore",
     "SearchResult",
@@ -29,5 +31,6 @@ __all__ = [
     "openalex_search",
     "parse_pdf_from_url",
     "reset_vector_store_registry",
+    "SciteClient",
     "search_sections",
 ]

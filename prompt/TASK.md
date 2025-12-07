@@ -26,7 +26,7 @@ PRごとに小さく進め、TDDとCI通過を必須とする。ブランチ名�
   - `src/tools/pdf_parser.py` Doclingで PDF→Markdown 変換（URL→一時保存→解析）  
   - Grobid/Unstructured等のフォールバックを実装し、Docling失敗時も最低限の本文を確保  
   - Tests: 複雑レイアウトPDFの見出し/表検出、破損URL時のエラー、Docling失敗時にフォールバックが動作すること
-- [ ] feature/tool-scite-validation  
+- [x] feature/tool-scite-validation  
   - `src/tools/citation_check.py` Scite API で supporting/mentioning/contrasting tallies と信頼スコア判定  
   - カバレッジ外/レート制限時のフォールバック（警告＋手動承認or代替ソース）を実装  
   - Tests: 代表DOIでスコア/警告のデータ駆動テスト、レート制限/Unknown DOI時のフォールバック動作
