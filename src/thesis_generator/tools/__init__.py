@@ -1,4 +1,10 @@
 from .citation_check import SciteClient, check_citations
+from .code_execution import (
+    ExecutionFailed,
+    ExecutionResult,
+    SandboxUnavailableError,
+    execute_python,
+)
 from .ingest import (
     Chunk,
     ParentChildVectorStore,
@@ -24,6 +30,10 @@ __all__ = [
     "SearchResult",
     "SourceDocument",
     "SourceSection",
+    "ExecutionFailed",
+    "ExecutionResult",
+    "SandboxUnavailableError",
+    "execute_python",
     "ingest_documents",
     "OpenAlexAPI",
     "OpenAlexPaper",
