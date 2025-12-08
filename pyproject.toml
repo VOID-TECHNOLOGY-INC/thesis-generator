@@ -16,7 +16,7 @@ pydantic = "^2.8.2"
 pydantic-settings = "^2.4.0"
 python-dotenv = "^1.0.1"
 pyalex = "^0.19"
-docling = "^0.3.1"
+docling = ">=2.64.0,<3.0.0"
 PyPDF2 = "^3.0.1"
 e2b-code-interpreter = "^2.4.1"
 
