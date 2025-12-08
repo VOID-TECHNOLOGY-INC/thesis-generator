@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
     scite_api_key: str = Field(..., alias="SCITE_API_KEY")
     openalex_mailto: str | None = Field(default=None, alias="OPENALEX_MAILTO")
+    e2b_api_key: str | None = Field(default=None, alias="E2B_API_KEY")
 
     langchain_tracing_v2: bool = Field(default=False, alias="LANGCHAIN_TRACING_V2")
     langchain_endpoint: str | None = Field(default=None, alias="LANGCHAIN_ENDPOINT")

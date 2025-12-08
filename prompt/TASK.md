@@ -34,7 +34,7 @@ PRごとに小さく進め、TDDとCI通過を必須とする。ブランチ名�
   - Sciteをオプション化し、未設定時は OpenAlex/S2/COCI から引用元要旨を取得→LLMでsupporting/contrasting分類するパイプラインを用意  
   - スコア算出ロジックは Scite と同等の指標を維持し、カバレッジなし時は警告＋手動レビュー要で返す  
   - Tests: Sciteなし環境でのLLM分類モックによるスコア計算、OpenAlexレスポンス空時の警告フロー、APIエラー時のフォールバック確認
-- [ ] feature/tool-e2b-sandbox  
+- [x] feature/tool-e2b-sandbox  
   - `src/tools/code_execution.py` e2b_code_interpreter 統合、コード実行と出力/生成ファイル取得、タイムアウト  
   - Tests: 正常計算、無限ループ/外部アクセス阻止のサンドボックス確認
 
