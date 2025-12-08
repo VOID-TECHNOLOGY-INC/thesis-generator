@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import requests
 
@@ -92,9 +93,17 @@ class SciteClient:
         try:
             tallies = self._fetch_tallies(doi)
         except RateLimitError as exc:
-            return self._fallback(doi, f"{exc}. Manual approval or alternate source required.", "rate_limit")
+            return self._fallback(
+                doi,
+                f"{exc}. Manual approval or alternate source required.",
+                "rate_limit",
+            )
         except CoverageError as exc:
-            return self._fallback(doi, f"{exc}. Please verify manually or use alternative source.", "coverage")
+            return self._fallback(
+                doi,
+                f"{exc}. Please verify manually or use alternative source.",
+                "coverage",
+            )
         except Exception as exc:
             return self._fallback(doi, f"Scite error: {exc}", "error")
 

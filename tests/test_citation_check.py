@@ -38,9 +38,24 @@ class FakeSession:
 @pytest.mark.parametrize(
     ("doi", "tallies", "expected_score", "expected_warning"),
     [
-        ("10.1000/positive", {"supporting": 4, "mentioning": 2, "contrasting": 1}, 0.714, None),
-        ("10.1000/low-evidence", {"supporting": 0, "mentioning": 0, "contrasting": 0}, 0.0, "coverage"),
-        ("10.1000/contradict", {"supporting": 1, "mentioning": 0, "contrasting": 3}, 0.25, "contrasting"),
+        (
+            "10.1000/positive",
+            {"supporting": 4, "mentioning": 2, "contrasting": 1},
+            0.714,
+            None,
+        ),
+        (
+            "10.1000/low-evidence",
+            {"supporting": 0, "mentioning": 0, "contrasting": 0},
+            0.0,
+            "coverage",
+        ),
+        (
+            "10.1000/contradict",
+            {"supporting": 1, "mentioning": 0, "contrasting": 3},
+            0.25,
+            "contrasting",
+        ),
     ],
 )
 def test_check_citations_scores_and_warnings(

@@ -1,3 +1,4 @@
+from .citation_check import SciteClient, check_citations
 from .ingest import (
     Chunk,
     ParentChildVectorStore,
@@ -14,7 +15,6 @@ from .openalex import (
     openalex_get_paper,
     openalex_search,
 )
-from .citation_check import SciteClient, check_citations
 from .pdf_parser import parse_pdf_from_url
 
 __all__ = [
