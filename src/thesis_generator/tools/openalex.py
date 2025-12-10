@@ -1,18 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from thesis_generator.config import load_settings
 
-if TYPE_CHECKING:
+try:
     from langchain_core.tools import tool
-    from pyalex import Works
-    from pyalex import config as openalex_config
-    from pyalex import invert_abstract
-else:
+except Exception:  # pragma: no cover - optional dependency
     def tool(*args: Any, **kwargs: Any):
         def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
             return fn
@@ -21,6 +18,11 @@ else:
             return decorator(args[0])
         return decorator
 
+try:
+    from pyalex import Works
+    from pyalex import config as openalex_config
+    from pyalex import invert_abstract
+except Exception:  # pragma: no cover - optional dependency
     class _OpenAlexConfig:
         mailto: str | None = None
 
