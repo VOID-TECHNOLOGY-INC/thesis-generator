@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import operator
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -29,6 +29,26 @@ class Section(BaseModel):
     feedback: str | None = None
 
 
+class ResearchDocument(BaseModel):
+    """Lightweight research artifact enriched during the workflow."""
+
+    id: str
+    title: str
+    perspective: str
+    abstract: str | None = None
+    summary: str | None = None
+    doi: str | None = None
+    paper_id: str | None = None
+    year: int | None = None
+    citation_count: int | None = None
+    trust_score: float | None = None
+    flags: list[str] = Field(default_factory=list)
+    status: Literal["candidate", "validated", "needs_review", "excluded"] = "candidate"
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    model_config = ConfigDict(extra="ignore")
+
+
 ChapterSummaries = Annotated[dict[str, str], operator.or_]
 
 
@@ -44,6 +64,7 @@ class ThesisState(BaseModel):
 
     knowledge_graph: list[Reference] = Field(default_factory=list)
     perspectives: list[str] = Field(default_factory=list)
+    documents: list[ResearchDocument] = Field(default_factory=list)
 
     outline: list[Section] = Field(default_factory=list)
     manuscript: list[Section] = Field(default_factory=list)
@@ -73,6 +94,7 @@ class ThesisStateUpdate(BaseModel):
 
     knowledge_graph: list[Reference] | None = None
     perspectives: list[str] | None = None
+    documents: list[ResearchDocument] | None = None
 
     outline: list[Section] | None = None
     manuscript: list[Section] | None = None

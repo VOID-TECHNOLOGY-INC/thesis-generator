@@ -43,14 +43,14 @@ PRごとに小さく進め、TDDとCI通過を必須とする。ブランチ名�
   - STORM視点から3階層TOC生成、中央仮説を4ファセット（Purpose/Mechanism/Evaluation/Application）でNovelty評価し、類似度高の場合にピボット案を生成  
   - Master Plan（hypothesis/outline/novelty_score）をThesisStateにロック  
   - Tests: ピボット発生のモック検証、TOCに主要章（序論/文献/方法/結果/考察/結論）が含まれるか確認
-- [ ] feature/agent-researcher-storm  
+- [x] feature/agent-researcher-storm  
   - STORM視点生成、視点別検索、対話シミュレーションで疑問抽出→documents へ格納  
   - Tests: 多様視点生成（重複なし）、documents への視点メタデータ付与
-- [ ] feature/agent-validator  
+- [x] feature/agent-validator  
   - Sciteツールで信頼性判定、否定/撤回フラグ付け、Noveltyチェックプロンプト  
   - Sciteカバレッジ外の扱い（警告＋代替チェックorヒューマン承認）を明記  
   - Tests: 混在リスト入力で疑わしい論文がフラグされるか、カバレッジ外ケースでフォールバックが動くか
-- [ ] feature/agent-writer  
+- [x] feature/agent-writer  
   - アウトライン生成、セクション執筆、引用ID `` 強制、自己修正ループ  
   - Tests: 段落ごとに引用マーカー存在確認、長文分割/修正動作
 
