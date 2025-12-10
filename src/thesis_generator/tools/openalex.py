@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+from pydantic import BaseModel, ConfigDict, Field
+
+from thesis_generator.config import load_settings
+
 if TYPE_CHECKING:
     from langchain_core.tools import tool
     from pyalex import Works
@@ -27,9 +31,6 @@ else:
         # Basic fallback that reverses the inverted index into text.
         words = sorted(((pos, token) for token, positions in index.items() for pos in positions))
         return " ".join(token for _, token in words)
-from pydantic import BaseModel, ConfigDict, Field
-
-from thesis_generator.config import load_settings
 
 DEFAULT_FIELDS: list[str] = [
     "id",
