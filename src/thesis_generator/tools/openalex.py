@@ -1,26 +1,29 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any, Callable
 
-try:
+if TYPE_CHECKING:
     from langchain_core.tools import tool
-except Exception:  # pragma: no cover - optional dependency
-    def tool(name: str):  # type: ignore[override]
-        def decorator(fn: Any) -> Any:
+    from pyalex import Works
+    from pyalex import config as openalex_config
+    from pyalex import invert_abstract
+else:
+    def tool(*args: Any, **kwargs: Any):
+        def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
             return fn
 
+        if args and callable(args[0]) and len(args) == 1 and not kwargs:
+            return decorator(args[0])
         return decorator
 
-try:
-    from pyalex import Works, invert_abstract
-    from pyalex import config as openalex_config
-except Exception:  # pragma: no cover - optional dependency
-    Works = None  # type: ignore[assignment]
-    openalex_config = SimpleNamespace(mailto=None)
+    class _OpenAlexConfig:
+        mailto: str | None = None
 
-    def invert_abstract(index: Mapping[str, list[int]]) -> str:  # type: ignore[misc]
+    openalex_config = _OpenAlexConfig()
+    Works = None
+
+    def invert_abstract(index: Mapping[str, list[int]]) -> str:
         # Basic fallback that reverses the inverted index into text.
         words = sorted(((pos, token) for token, positions in index.items() for pos in positions))
         return " ".join(token for _, token in words)
@@ -60,7 +63,7 @@ class OpenAlexAPI:
         self,
         *,
         mailto: str | None = None,
-        works_client: Works | None = None,
+        works_client: Any | None = None,
         max_results_per_page: int = 100,
     ) -> None:
         if mailto and hasattr(openalex_config, "mailto"):
