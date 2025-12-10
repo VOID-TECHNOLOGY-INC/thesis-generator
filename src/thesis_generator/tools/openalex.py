@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # ruff: noqa: I001
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,13 +11,15 @@ from thesis_generator.config import load_settings
 try:
     from langchain_core.tools import tool
 except Exception:  # pragma: no cover - optional dependency
-    def tool(*args: Any, **kwargs: Any):
+    def _tool_stub(*args: Any, **kwargs: Any) -> Callable[..., Any]:
         def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
             return fn
 
         if args and callable(args[0]) and len(args) == 1 and not kwargs:
             return decorator(args[0])
         return decorator
+
+    tool = cast(Any, _tool_stub)
 
 try:
     from pyalex import Works  # ruff: noqa: I001
