@@ -1,4 +1,4 @@
-from .citation_check import SciteClient, check_citations
+from .citation_check import SciteClient, check_citations, evaluate_citations_with_fallback
 from .code_execution import (
     ExecutionFailed,
     ExecutionResult,
@@ -43,4 +43,5 @@ __all__ = [
     "reset_vector_store_registry",
     "SciteClient",
     "search_sections",
+    "evaluate_citations_with_fallback",
 ]
