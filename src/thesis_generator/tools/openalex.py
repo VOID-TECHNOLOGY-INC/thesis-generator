@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+# ruff: noqa: I001
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
