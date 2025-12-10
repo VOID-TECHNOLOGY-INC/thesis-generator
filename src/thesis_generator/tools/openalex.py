@@ -1,11 +1,29 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from types import SimpleNamespace
 from typing import Any
 
-from langchain_core.tools import tool
-from pyalex import Works, invert_abstract
-from pyalex import config as openalex_config
+try:
+    from langchain_core.tools import tool
+except Exception:  # pragma: no cover - optional dependency
+    def tool(name: str):  # type: ignore[override]
+        def decorator(fn: Any) -> Any:
+            return fn
+
+        return decorator
+
+try:
+    from pyalex import Works, invert_abstract
+    from pyalex import config as openalex_config
+except Exception:  # pragma: no cover - optional dependency
+    Works = None  # type: ignore[assignment]
+    openalex_config = SimpleNamespace(mailto=None)
+
+    def invert_abstract(index: Mapping[str, list[int]]) -> str:  # type: ignore[misc]
+        # Basic fallback that reverses the inverted index into text.
+        words = sorted(((pos, token) for token, positions in index.items() for pos in positions))
+        return " ".join(token for _, token in words)
 from pydantic import BaseModel, ConfigDict, Field
 
 from thesis_generator.config import load_settings
@@ -45,9 +63,14 @@ class OpenAlexAPI:
         works_client: Works | None = None,
         max_results_per_page: int = 100,
     ) -> None:
-        if mailto:
+        if mailto and hasattr(openalex_config, "mailto"):
             openalex_config.mailto = mailto
-        self.works = works_client or Works()
+        if works_client is not None:
+            self.works = works_client
+        elif Works is not None:
+            self.works = Works()
+        else:  # pragma: no cover - only when pyalex is absent
+            raise RuntimeError("pyalex is not installed; provide a works_client.")
         self.max_results_per_page = max(1, min(max_results_per_page, 200))
 
     def search_papers(

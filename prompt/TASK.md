@@ -39,7 +39,7 @@ PRごとに小さく進め、TDDとCI通過を必須とする。ブランチ名�
   - Tests: 正常計算、無限ループ/外部アクセス阻止のサンドボックス確認
 
 ## Phase 3: Agents
-- [ ] feature/agent-planner-novelty  
+- [x] feature/agent-planner-novelty  
   - STORM視点から3階層TOC生成、中央仮説を4ファセット（Purpose/Mechanism/Evaluation/Application）でNovelty評価し、類似度高の場合にピボット案を生成  
   - Master Plan（hypothesis/outline/novelty_score）をThesisStateにロック  
   - Tests: ピボット発生のモック検証、TOCに主要章（序論/文献/方法/結果/考察/結論）が含まれるか確認
