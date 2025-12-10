@@ -19,7 +19,7 @@ except Exception:  # pragma: no cover - optional dependency
         return decorator
 
 try:
-    from pyalex import Works
+    from pyalex import Works  # ruff: noqa: I001
     from pyalex import config as openalex_config
     from pyalex import invert_abstract
 except Exception:  # pragma: no cover - optional dependency
