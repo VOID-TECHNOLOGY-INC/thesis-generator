@@ -1,14 +1,41 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from typing import Any
+# ruff: noqa: I001
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, cast
 
-from langchain_core.tools import tool
-from pyalex import Works, invert_abstract
-from pyalex import config as openalex_config
 from pydantic import BaseModel, ConfigDict, Field
 
 from thesis_generator.config import load_settings
+
+try:
+    from langchain_core.tools import tool
+except Exception:  # pragma: no cover - optional dependency
+    def _tool_stub(*args: Any, **kwargs: Any) -> Callable[..., Any]:
+        def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
+            return fn
+
+        if args and callable(args[0]) and len(args) == 1 and not kwargs:
+            return decorator(args[0])
+        return decorator
+
+    tool = cast(Any, _tool_stub)
+
+try:
+    from pyalex import Works  # ruff: noqa: I001
+    from pyalex import config as openalex_config
+    from pyalex import invert_abstract
+except Exception:  # pragma: no cover - optional dependency
+    class _OpenAlexConfig:
+        mailto: str | None = None
+
+    openalex_config = _OpenAlexConfig()
+    Works = None
+
+    def invert_abstract(index: Mapping[str, list[int]]) -> str:
+        # Basic fallback that reverses the inverted index into text.
+        words = sorted(((pos, token) for token, positions in index.items() for pos in positions))
+        return " ".join(token for _, token in words)
 
 DEFAULT_FIELDS: list[str] = [
     "id",
@@ -42,12 +69,17 @@ class OpenAlexAPI:
         self,
         *,
         mailto: str | None = None,
-        works_client: Works | None = None,
+        works_client: Any | None = None,
         max_results_per_page: int = 100,
     ) -> None:
-        if mailto:
+        if mailto and hasattr(openalex_config, "mailto"):
             openalex_config.mailto = mailto
-        self.works = works_client or Works()
+        if works_client is not None:
+            self.works = works_client
+        elif Works is not None:
+            self.works = Works()
+        else:  # pragma: no cover - only when pyalex is absent
+            raise RuntimeError("pyalex is not installed; provide a works_client.")
         self.max_results_per_page = max(1, min(max_results_per_page, 200))
 
     def search_papers(
