@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 from pydantic import BaseModel, Field
 
@@ -21,7 +21,7 @@ class TOCNode(BaseModel):
     """Three-level table of contents node."""
 
     title: str
-    children: list["TOCNode"] = Field(default_factory=list)
+    children: list[TOCNode] = Field(default_factory=list)
 
 
 @dataclass
@@ -132,7 +132,8 @@ def _propose_pivot(base: FacetProfile, overlapping_facet: str | None) -> FacetPr
 def _compose_hypothesis(facets: FacetProfile, *, pivoted: bool) -> str:
     base = (
         f"We hypothesize that {facets.purpose} can be achieved using {facets.mechanism}. "
-        f"We will evaluate success via {facets.evaluation} and ground the work in {facets.application}."
+        f"We will evaluate success via {facets.evaluation} "
+        f"and ground the work in {facets.application}."
     )
     return f"Pivot: {base}" if pivoted else base
 
