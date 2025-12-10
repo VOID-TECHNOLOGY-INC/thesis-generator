@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from itertools import cycle, islice
-from typing import Iterable
 
 from thesis_generator.state import ResearchDocument, Section, ThesisState
 

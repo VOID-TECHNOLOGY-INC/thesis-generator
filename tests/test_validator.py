@@ -21,7 +21,12 @@ def test_validator_flags_suspicious_sources_with_low_trust() -> None:
         ),
     ]
 
-    state = ThesisState(topic="AI safety", target_word_count=5000, style_guide="apa", documents=docs)
+    state = ThesisState(
+        topic="AI safety",
+        target_word_count=5000,
+        style_guide="apa",
+        documents=docs,
+    )
 
     def score_fn(dois: list[str]):
         lookup = {
@@ -66,7 +71,12 @@ def test_validator_marks_coverage_gaps_for_manual_review() -> None:
             doi=None,
         )
     ]
-    state = ThesisState(topic="OpenAI policy", target_word_count=3000, style_guide="apa", documents=docs)
+    state = ThesisState(
+        topic="OpenAI policy",
+        target_word_count=3000,
+        style_guide="apa",
+        documents=docs,
+    )
 
     updated = validate_documents(state, score_fn=lambda dois: [])
 

@@ -5,7 +5,6 @@ from typing import Any
 
 from thesis_generator.state import ResearchDocument, ThesisState
 
-
 _DEFAULT_PERSPECTIVES = [
     "Technical robustness",
     "Economic impact",

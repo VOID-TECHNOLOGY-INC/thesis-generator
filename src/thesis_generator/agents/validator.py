@@ -72,7 +72,12 @@ def validate_documents(
         updated.flags = sorted(set(flags))
         documents.append(updated)
 
-    return state.model_copy(update={"documents": documents, "hallucination_flags": hallucination_flags})
+    return state.model_copy(
+        update={
+            "documents": documents,
+            "hallucination_flags": hallucination_flags,
+        }
+    )
 
 
 __all__ = ["validate_documents"]
