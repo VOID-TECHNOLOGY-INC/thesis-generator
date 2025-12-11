@@ -25,6 +25,7 @@ class Section(BaseModel):
     content: str | None = None
     summary: str | None = None
     citations: list[str] = Field(default_factory=list)
+    assigned_sources: list[str] = Field(default_factory=list)
     status: Literal["pending", "draft", "in_review", "approved", "rejected"] = "pending"
     feedback: str | None = None
 
