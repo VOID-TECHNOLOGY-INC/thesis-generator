@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
+from typing import Any
 
 from thesis_generator.graph.builder import build_main_graph
 from thesis_generator.state import Section, ThesisState
 
 
-def _coerce_state(result: ThesisState | dict[str, object]) -> ThesisState:
+def _coerce_state(result: ThesisState | Mapping[str, Any]) -> ThesisState:
     return result if isinstance(result, ThesisState) else ThesisState(**result)
 
 
@@ -57,7 +58,7 @@ def run_cli(
 
     args = parser.parse_args(argv)
 
-    app = graph_factory() if graph_factory else build_main_graph()
+    app: Any = graph_factory() if graph_factory else build_main_graph()
     initial_state = ThesisState(
         topic=args.topic,
         target_word_count=args.target_word_count,
