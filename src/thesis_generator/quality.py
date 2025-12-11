@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from statistics import median
-from typing import Collection, Iterable, Mapping, Sequence
 
 from thesis_generator.state import ResearchDocument, Section, ThesisState
 
@@ -173,7 +172,8 @@ def evaluate_regression_metrics(
     extra = pred_set - gold_set
     missing = gold_set - pred_set
     details = (
-        f"extra: {sorted(extra)} missing: {sorted(missing)}; golden size={total_gold}, predicted={total_pred}"
+        f"extra: {sorted(extra)} missing: {sorted(missing)}; "
+        f"golden size={total_gold}, predicted={total_pred}"
     )
 
     return RegressionReport(
