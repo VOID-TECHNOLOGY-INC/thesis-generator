@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# ruff: noqa: I001
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, cast
 
@@ -22,9 +21,8 @@ except Exception:  # pragma: no cover - optional dependency
     tool = cast(Any, _tool_stub)
 
 try:
-    from pyalex import Works  # ruff: noqa: I001
+    from pyalex import Works, invert_abstract
     from pyalex import config as openalex_config
-    from pyalex import invert_abstract
 except Exception:  # pragma: no cover - optional dependency
     class _OpenAlexConfig:
         mailto: str | None = None
