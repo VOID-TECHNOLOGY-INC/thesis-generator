@@ -15,7 +15,9 @@ class RouteResponse(BaseModel):
 
 
 def _has_complete_manuscript(state: ThesisState) -> bool:
-    return bool(state.manuscript) and all(section.status == "approved" for section in state.manuscript)
+    return bool(state.manuscript) and all(
+        section.status == "approved" for section in state.manuscript
+    )
 
 
 def _needs_research(state: ThesisState) -> bool:

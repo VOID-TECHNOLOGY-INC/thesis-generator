@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import re
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Mapping
 
 
 class SecretNotFoundError(RuntimeError):
@@ -37,7 +37,9 @@ class SecretManager:
 class InMemorySecretManager(SecretManager):
     """Testing-friendly manager that stores secrets in-memory."""
 
-    def __init__(self, initial: Mapping[str, str] | None = None, *, allow_env_fallback: bool = False) -> None:
+    def __init__(
+        self, initial: Mapping[str, str] | None = None, *, allow_env_fallback: bool = False
+    ) -> None:
         super().__init__(vault=dict(initial or {}), allow_env_fallback=allow_env_fallback)
 
 
@@ -74,4 +76,10 @@ def prune_uploads(upload_dir: Path, *, ttl_days: int = 30) -> list[Path]:
     return removed
 
 
-__all__ = ["InMemorySecretManager", "SecretManager", "SecretNotFoundError", "mask_pii", "prune_uploads"]
+__all__ = [
+    "InMemorySecretManager",
+    "SecretManager",
+    "SecretNotFoundError",
+    "mask_pii",
+    "prune_uploads",
+]

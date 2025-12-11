@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import END, START
@@ -52,7 +53,9 @@ def _validator_node(state: ThesisState) -> ThesisState:
 
     return validated.model_copy(
         update={
-            "user_approval_status": "approved" if validated.manuscript else validated.user_approval_status,
+            "user_approval_status": (
+                "approved" if validated.manuscript else validated.user_approval_status
+            ),
             "manuscript": updated_sections,
         }
     )

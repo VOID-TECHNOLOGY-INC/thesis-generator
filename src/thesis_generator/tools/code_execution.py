@@ -35,7 +35,9 @@ def _load_sandbox_class() -> Any:
     return Sandbox
 
 
-def _resolve_api_key(provided: str | None, *, secret_manager: SecretManager | None = None) -> str | None:
+def _resolve_api_key(
+    provided: str | None, *, secret_manager: SecretManager | None = None
+) -> str | None:
     if provided:
         return provided
 
@@ -137,7 +139,10 @@ def execute_python(
     """Execute Python code inside an e2b sandbox with network egress disabled."""
 
     _validate_code_safety(code)
-    sandbox = _create_sandbox(api_key=_resolve_api_key(api_key, secret_manager=secret_manager), timeout=timeout)
+    sandbox = _create_sandbox(
+        api_key=_resolve_api_key(api_key, secret_manager=secret_manager),
+        timeout=timeout,
+    )
     with sandbox:
         baseline = _snapshot_files(sandbox.files)
         uploaded: set[str] = set()

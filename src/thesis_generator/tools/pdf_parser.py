@@ -7,6 +7,7 @@ import requests
 
 from thesis_generator.security import mask_pii
 
+
 def _download_pdf(url: str) -> bytes:
     response = requests.get(url, timeout=15)
     response.raise_for_status()
