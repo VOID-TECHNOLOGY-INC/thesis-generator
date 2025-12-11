@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 from thesis_generator.config import load_settings
+from thesis_generator.security import SecretManager
 
 
 class SandboxUnavailableError(RuntimeError):
@@ -35,16 +35,12 @@ def _load_sandbox_class() -> Any:
     return Sandbox
 
 
-def _resolve_api_key(provided: str | None) -> str | None:
+def _resolve_api_key(provided: str | None, *, secret_manager: SecretManager | None = None) -> str | None:
     if provided:
         return provided
 
-    env_key = os.getenv("E2B_API_KEY")
-    if env_key:
-        return env_key
-
     try:
-        settings = load_settings()
+        settings = load_settings(secret_manager=secret_manager)
     except RuntimeError:
         return None
 
@@ -63,6 +59,13 @@ def _create_sandbox(*, api_key: str | None, timeout: float | None) -> Any:
         kwargs["api_key"] = api_key
 
     return sandbox_cls.create(**kwargs)
+
+
+def _validate_code_safety(code: str) -> None:
+    lowered = code.lower()
+    banned_markers = ["requests.get", "http://", "https://", "socket.", "subprocess"]
+    if any(marker in lowered for marker in banned_markers):
+        raise ExecutionFailed("Network and process access are blocked inside the sandbox.")
 
 
 def _snapshot_files(filesystem: Any) -> set[str]:
@@ -129,10 +132,12 @@ def execute_python(
     files: Mapping[str, bytes] | None = None,
     timeout: float = 30.0,
     api_key: str | None = None,
+    secret_manager: SecretManager | None = None,
 ) -> ExecutionResult:
     """Execute Python code inside an e2b sandbox with network egress disabled."""
 
-    sandbox = _create_sandbox(api_key=_resolve_api_key(api_key), timeout=timeout)
+    _validate_code_safety(code)
+    sandbox = _create_sandbox(api_key=_resolve_api_key(api_key, secret_manager=secret_manager), timeout=timeout)
     with sandbox:
         baseline = _snapshot_files(sandbox.files)
         uploaded: set[str] = set()

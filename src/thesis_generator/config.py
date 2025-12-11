@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-from pydantic import Field, ValidationError
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from thesis_generator.security import InMemorySecretManager, SecretManager
 
 
-class Settings(BaseSettings):
-    """Application configuration loaded from environment variables."""
+class Settings(BaseModel):
+    """Application configuration resolved through a secret manager."""
 
-    openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
-    scite_api_key: str = Field(..., alias="SCITE_API_KEY")
+    model_config = ConfigDict(extra="ignore")
+
+    openai_api_key: str = Field(alias="OPENAI_API_KEY")
+    scite_api_key: str = Field(alias="SCITE_API_KEY")
     openalex_mailto: str | None = Field(default=None, alias="OPENALEX_MAILTO")
     e2b_api_key: str | None = Field(default=None, alias="E2B_API_KEY")
 
@@ -17,21 +22,42 @@ class Settings(BaseSettings):
     langchain_api_key: str | None = Field(default=None, alias="LANGCHAIN_API_KEY")
     langchain_project: str = Field(default="thesis-generator", alias="LANGCHAIN_PROJECT")
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-        case_sensitive=False,
-    )
+
+def _collect_settings(secret_manager: SecretManager) -> dict[str, Any]:
+    required_keys = ["OPENAI_API_KEY", "SCITE_API_KEY"]
+    optional_keys = [
+        "OPENALEX_MAILTO",
+        "E2B_API_KEY",
+        "LANGCHAIN_TRACING_V2",
+        "LANGCHAIN_ENDPOINT",
+        "LANGCHAIN_API_KEY",
+        "LANGCHAIN_PROJECT",
+    ]
+
+    resolved: dict[str, Any] = {}
+    missing: list[str] = []
+
+    for key in required_keys:
+        value = secret_manager.get(key)
+        if value:
+            resolved[key] = value
+        else:
+            missing.append(key)
+
+    if missing:
+        raise RuntimeError(f"Missing required environment variables: {', '.join(missing)}")
+
+    for key in optional_keys:
+        value = secret_manager.get(key)
+        if value is not None:
+            resolved[key] = value
+
+    return resolved
 
 
-def load_settings() -> Settings:
-    """Load settings from environment, failing fast on missing keys."""
+def load_settings(*, secret_manager: SecretManager | None = None) -> Settings:
+    """Load settings exclusively through the provided secret manager."""
 
-    try:
-        return Settings()  # type: ignore[call-arg]
-    except ValidationError as exc:
-        missing_vars = [".".join(map(str, err.get("loc", ()))) for err in exc.errors()]
-        missing = ", ".join(filter(None, missing_vars))
-        detail = f"Missing required environment variables: {missing or 'unknown'}"
-        raise RuntimeError(detail) from exc
+    manager = secret_manager or InMemorySecretManager(allow_env_fallback=True)
+    data = _collect_settings(manager)
+    return Settings(**data)

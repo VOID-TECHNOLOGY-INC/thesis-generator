@@ -55,13 +55,13 @@ PRごとに小さく進め、TDDとCI通過を必須とする。ブランチ名�
   - Tests: 段落ごとに引用マーカー存在確認、長文分割/修正動作
 
 ## Phase 4: Orchestration
-- [ ] feature/graph-supervisor-router  
+- [x] feature/graph-supervisor-router  
   - `src/graph/supervisor.py` RouteResponse（structured output）、Stateに応じた次ノード決定  
   - Tests: 状況別ルーティング（情報なし→Researcher、未検証ドラフト→Validator、完了→FINISH）
-- [ ] feature/construct-main-graph  
+- [x] feature/construct-main-graph  
   - `src/graph/builder.py` StateGraph構築、各ノード登録、条件付きエッジ、checkpoint設定  
   - Tests: グラフ静的検査（孤立/無限ループなし）、モックツールでENDまでのスモーク
-- [ ] chore/runtime-safety-and-secrets  
+- [x] chore/runtime-safety-and-secrets  
   - code_execution.py をDocker/E2Bでネットワーク遮断・書き込み制限付きで実行するラッパー化（検索/APIアクセスは別プロセスで実行しコンテナからは禁止）  
   - Secret Manager/Vault連携でAPIキーを取得し、環境変数直読み禁止  
   - PDFアップロードのPIIマスク、保持期間(30日)の自動削除ジョブ  
