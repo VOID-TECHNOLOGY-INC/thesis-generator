@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from thesis_generator.graph.builder import build_main_graph
 from thesis_generator.state import Section, ThesisState

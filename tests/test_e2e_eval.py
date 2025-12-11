@@ -8,7 +8,9 @@ from thesis_generator.state import ThesisState
 
 class _TinyGraph:
     def invoke(self, state: ThesisState) -> ThesisState:
-        return state.model_copy(update={"manuscript": state.manuscript or [], "next_node": "FINISH"})
+        return state.model_copy(
+            update={"manuscript": state.manuscript or [], "next_node": "FINISH"}
+        )
 
 
 def test_e2e_suite_produces_metrics(tmp_path: Path) -> None:
