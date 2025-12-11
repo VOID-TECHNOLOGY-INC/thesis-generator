@@ -68,10 +68,10 @@ PRごとに小さく進め、TDDとCI通過を必須とする。ブランチ名�
   - Tests: 外部アクセスを試みるコードが遮断される、Secret未設定時は起動エラー、PIIマスク適用確認
 
 ## Phase 5: Delivery & QA
-- [ ] feature/user-interface  
+- [x] feature/user-interface  
   - CLI `src/main.py`（argparse）、ストリーミングUI `src/app.py`（Streamlit/FastAPI + astream_events）、Markdown出力保存  
   - Tests: 実行後に出力ファイル生成・非空を確認
-- [ ] chore/e2e-testing-and-eval  
+- [x] chore/e2e-testing-and-eval  
   - 統合テストスイート、LangSmith評価セット、幻覚/引用精度の自動評価スクリプト、性能・レート測定  
   - Tests: 代表トピックでタイムアウトしない、API呼び出し回数がしきい値内、評価スコア計測
 
