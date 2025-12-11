@@ -12,9 +12,14 @@ class DummyLogs:
 
 
 class DummyExecution:
-    def __init__(self, stdout: list[str] | None = None, stderr: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        stdout: list[str] | None = None,
+        stderr: list[str] | None = None,
+        error: object | None = None,
+    ) -> None:
         self.logs = DummyLogs(stdout=stdout, stderr=stderr)
-        self.error = None
+        self.error = error
         self.results = []
 
 
@@ -109,3 +114,21 @@ def test_execute_python_disables_network(monkeypatch: pytest.MonkeyPatch) -> Non
     assert captured_kwargs.get("allow_internet_access") is False
     assert captured_kwargs.get("network") == {"deny_out": ["0.0.0.0/0"]}
     assert result.files["/outputs/plot.png"] == b"image-bytes"
+
+
+def test_execute_python_rejects_network_calls(monkeypatch: pytest.MonkeyPatch) -> None:
+    class NetworkFailSandbox(FakeSandbox):
+        def run_code(self, code: str, timeout: float | None = None, **_: object) -> DummyExecution:  # noqa: ARG002
+            if "http://" in code or "https://" in code:
+                return DummyExecution(
+                    stdout=[],
+                    stderr=["blocked"],
+                    error=type("Err", (), {"message": "network blocked"}),
+                )
+            return DummyExecution(stdout=[f"ok {timeout}"])
+
+    sandbox = NetworkFailSandbox()
+    monkeypatch.setattr(code_execution, "_create_sandbox", lambda **_: sandbox)
+
+    with pytest.raises(code_execution.ExecutionFailed):
+        code_execution.execute_python("import requests\nrequests.get('http://example.com')")

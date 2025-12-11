@@ -5,6 +5,8 @@ from pathlib import Path
 
 import requests
 
+from thesis_generator.security import mask_pii
+
 
 def _download_pdf(url: str) -> bytes:
     response = requests.get(url, timeout=15)
@@ -77,7 +79,7 @@ def parse_pdf_from_url(url: str) -> str:
         errors: list[str] = []
         for converter in (_convert_with_docling, _convert_with_unstructured, _convert_with_pypdf):
             try:
-                return converter(pdf_path)
+                return mask_pii(converter(pdf_path))
             except Exception as exc:  # pragma: no cover - aggregated for error reporting
                 errors.append(str(exc))
                 continue
