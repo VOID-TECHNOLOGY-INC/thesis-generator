@@ -76,7 +76,7 @@ PRごとに小さく進め、TDDとCI通過を必須とする。ブランチ名�
   - Tests: 代表トピックでタイムアウトしない、API呼び出し回数がしきい値内、評価スコア計測
 
 ## Phase 6: 品質ゲート・運用
-- [ ] chore/quality-gates-and-ops  
+- [x] chore/quality-gates-and-ops  
   - Supervisor/Reviewerに段階的ゲートを実装（警告: Novelty>=0.6、引用対応率>=0.98、Scite失敗は再試行+警告 / ブロック: Novelty>=0.7、引用対応率100%、Scite偽陽性/偽陰性ゼロ）し、違反時に差し戻し  
   - TOC各Sectionにassigned_sourcesを紐付け、引用カバレッジチェックを自動化  
   - ゴールデンセットによるCitation Precision/Recall、Fact-to-Source一致率、スタイル遵守率の回帰テストをCIに組み込み  
