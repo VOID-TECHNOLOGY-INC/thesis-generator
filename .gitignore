@@ -17,3 +17,5 @@ __pycache__/
 # Editors/IDE
 .idea/
 .vscode/
+
+output/
