@@ -82,3 +82,7 @@ PRごとに小さく進め、TDDとCI通過を必須とする。ブランチ名�
   - ゴールデンセットによるCitation Precision/Recall、Fact-to-Source一致率、スタイル遵守率の回帰テストをCIに組み込み  
   - SLO/モニタリング（1章あたり平均生成時間、ベクトル検索レイテンシ、Scite照会成功率、APIコストプロファイルなど）の収集とアラート設定  
   - Tests: 引用欠落セクションでCI失敗、評価メトリクス閾値下回りでビルド失敗、SLO/コストメトリクス収集のサニティ
+- [ ] chore/env-missing-logging  
+  - 現状: `logging`/printベースのアプリ固有ログは未実装。必須キー欠落時は `config._collect_settings` が `RuntimeError` を投げるだけでコンソール警告なし。CLI/Streamlitも起動ログなしで、uvicornの標準ログのみ。e2b/OpenAlexなどツールは `load_settings` に依存し、オプショナルキー欠落時は静默。  
+  - `.env`/Secret未設定の必須環境変数欠落時に、CLI/Streamlit起動で即時にエラーまたは警告をコンソール出力し、致命/非致命の挙動を切り替える  
+  - Tests: 必須キー欠落でエラーログ＋非0終了、オプショナルキー欠落で警告ログのみになること
