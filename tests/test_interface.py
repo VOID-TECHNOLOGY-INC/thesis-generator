@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from fastapi.testclient import TestClient
+import pytest
 
 from thesis_generator.app import create_app
 from thesis_generator.main import run_cli

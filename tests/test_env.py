@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 
 from thesis_generator.config import load_settings
-from thesis_generator.security import InMemorySecretManager
 from thesis_generator.main import run_cli
+from thesis_generator.security import InMemorySecretManager
 
 
 class _StubGraph:
@@ -73,4 +73,6 @@ def test_cli_exits_with_error_when_required_env_missing(
         )
 
     assert excinfo.value.code == 1
-    assert any("Missing required environment variables" in record.message for record in caplog.records)
+    assert any(
+        "Missing required environment variables" in record.message for record in caplog.records
+    )

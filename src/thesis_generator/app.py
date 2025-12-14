@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from fastapi import FastAPI, HTTPException

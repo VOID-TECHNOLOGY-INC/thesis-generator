@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Callable, Mapping
 import logging
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
