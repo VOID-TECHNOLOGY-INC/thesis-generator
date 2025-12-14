@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 
+from thesis_generator.config import validate_environment
 from thesis_generator.graph.builder import build_main_graph
 from thesis_generator.state import ThesisState
 
@@ -17,6 +19,10 @@ def _coerce_state(result: ThesisState | dict[str, Any]) -> ThesisState:
 
 def create_app(*, graph_factory: Callable[[], Any] | None = None) -> FastAPI:
     """Construct a FastAPI app that streams LangGraph events."""
+
+    logger = logging.getLogger(__name__)
+    validate_environment(exit_on_error=True)
+    logger.info("Initialized Thesis Generator API with streaming support.")
 
     factory = graph_factory or build_main_graph
     app = FastAPI(title="Thesis Generator")

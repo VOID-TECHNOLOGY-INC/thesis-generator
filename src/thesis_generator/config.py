@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from thesis_generator.security import InMemorySecretManager, SecretManager
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseModel):
@@ -23,7 +26,7 @@ class Settings(BaseModel):
     langchain_project: str = Field(default="thesis-generator", alias="LANGCHAIN_PROJECT")
 
 
-def _collect_settings(secret_manager: SecretManager) -> dict[str, Any]:
+def _collect_settings(secret_manager: SecretManager) -> tuple[dict[str, Any], list[str]]:
     required_keys = ["OPENAI_API_KEY", "SCITE_API_KEY"]
     optional_keys = [
         "OPENALEX_MAILTO",
@@ -35,29 +38,61 @@ def _collect_settings(secret_manager: SecretManager) -> dict[str, Any]:
     ]
 
     resolved: dict[str, Any] = {}
-    missing: list[str] = []
+    missing_required: list[str] = []
+    missing_optional: list[str] = []
 
     for key in required_keys:
         value = secret_manager.get(key)
         if value:
             resolved[key] = value
         else:
-            missing.append(key)
+            missing_required.append(key)
 
-    if missing:
-        raise RuntimeError(f"Missing required environment variables: {', '.join(missing)}")
+    if missing_required:
+        logger.error("Missing required environment variables: %s", ", ".join(missing_required))
+        raise RuntimeError(f"Missing required environment variables: {', '.join(missing_required)}")
 
     for key in optional_keys:
         value = secret_manager.get(key)
-        if value is not None:
+        if value:
             resolved[key] = value
+        else:
+            missing_optional.append(key)
 
-    return resolved
+    return resolved, missing_optional
 
 
-def load_settings(*, secret_manager: SecretManager | None = None) -> Settings:
+def load_settings(
+    *, secret_manager: SecretManager | None = None, warn_optional: bool = True
+) -> Settings:
     """Load settings exclusively through the provided secret manager."""
 
     manager = secret_manager or InMemorySecretManager(allow_env_fallback=True)
-    data = _collect_settings(manager)
+    data, missing_optional = _collect_settings(manager)
+
+    if warn_optional and missing_optional:
+        logger.warning(
+            "Optional environment variables are not set; features may be limited: %s",
+            ", ".join(missing_optional),
+        )
+
     return Settings(**data)
+
+
+def validate_environment(
+    *,
+    secret_manager: SecretManager | None = None,
+    warn_optional: bool = True,
+    exit_on_error: bool = False,
+) -> Settings:
+    """Validate environment setup and optionally exit on missing required keys."""
+
+    try:
+        settings = load_settings(secret_manager=secret_manager, warn_optional=warn_optional)
+    except RuntimeError as exc:
+        if exit_on_error:
+            raise SystemExit(1) from exc
+        raise
+
+    logger.info("Environment variables resolved successfully.")
+    return settings
