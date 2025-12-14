@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Callable, Mapping
+import logging
 from pathlib import Path
 from typing import Any
 
+from thesis_generator.config import validate_environment
 from thesis_generator.graph.builder import build_main_graph
 from thesis_generator.state import Section, ThesisState
 
@@ -37,6 +39,8 @@ def run_cli(
 ) -> ThesisState:
     """Entrypoint for CLI usage; returns the final ThesisState."""
 
+    logger = logging.getLogger(__name__)
+
     parser = argparse.ArgumentParser(description="Run the thesis generator workflow.")
     parser.add_argument("--topic", required=True, help="Research topic to explore.")
     parser.add_argument(
@@ -57,6 +61,9 @@ def run_cli(
     )
 
     args = parser.parse_args(argv)
+
+    validate_environment(exit_on_error=True)
+    logger.info("Starting thesis generation for topic=%s", args.topic)
 
     app: Any = graph_factory() if graph_factory else build_main_graph()
     initial_state = ThesisState(

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from thesis_generator.app import create_app
@@ -44,7 +46,10 @@ class _DummyGraph:
         yield {"event": "complete", "data": final_state.model_dump()}
 
 
-def test_cli_generates_nonempty_markdown(tmp_path: Path) -> None:
+def test_cli_generates_nonempty_markdown(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "cli-openai")
+    monkeypatch.setenv("SCITE_API_KEY", "cli-scite")
+
     output = tmp_path / "report.md"
 
     final_state = run_cli(
@@ -59,7 +64,10 @@ def test_cli_generates_nonempty_markdown(tmp_path: Path) -> None:
     assert final_state.next_node == "FINISH"
 
 
-def test_streaming_endpoint_emits_events() -> None:
+def test_streaming_endpoint_emits_events(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "api-openai")
+    monkeypatch.setenv("SCITE_API_KEY", "api-scite")
+
     graph = _DummyGraph()
     app = create_app(graph_factory=lambda: graph)
     client = TestClient(app)
